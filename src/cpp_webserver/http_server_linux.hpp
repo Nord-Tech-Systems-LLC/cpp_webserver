@@ -15,7 +15,7 @@ class TcpServer {
    public:
     TcpServer(std::string ip_address, int port);
     ~TcpServer();
-    bool startListen();
+    void startListen();
     void closeServer();
 
    private:

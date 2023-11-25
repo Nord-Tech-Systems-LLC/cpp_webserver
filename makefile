@@ -18,7 +18,8 @@ prerequisites:
 
 ./build/bin/main: \
 		$(BuildObjectsDir)/server_linux.o \
-		$(BuildObjectsDir)/http_tcpServer_linux.o \
+		$(BuildObjectsDir)/http_server_linux.o \
+		$(BuildObjectsDir)/server_logging.o \
 		# $(BuildObjectsDir)/syntax_validation.o | prerequisites
 	@ echo Building $@ from $^
 	@ $(CC) -o $@ $^
