@@ -16,10 +16,12 @@ int main() {
     using namespace http;
     TcpServer server = TcpServer("0.0.0.0", 8080);
     bool serverClosed = server.startListen();
-    std::cout << "Server status: " << serverClosed << std::endl;
-    if (serverClosed) {
-        server.closeServer();
-    }
+
+    // TODO: doesn't work. Server needs to be closed properly
+    // std::cout << "Server status: " << serverClosed << std::endl;
+    // if (serverClosed) {
+    //     server.closeServer();
+    // }
 
     return 0;
 }
