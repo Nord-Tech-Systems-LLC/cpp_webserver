@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 
+#include <future>
 #include <string>
 
 namespace http {
@@ -15,7 +16,8 @@ class TcpServer {
    public:
     TcpServer(std::string ip_address, int port);
     ~TcpServer();
-    void startListen();
+    bool _local_run_flag;
+    void startListen(std::atomic_bool global_run_flag);
     void closeServer();
 
    private:

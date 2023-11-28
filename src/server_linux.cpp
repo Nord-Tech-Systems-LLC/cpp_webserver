@@ -8,20 +8,30 @@
  * will run the server using the TcpServer object.
  */
 
+#include <signal.h>
+
+#include <future>
 #include <iostream>
+#include <typeinfo>
 
 #include "cpp_webserver/http_server_linux.hpp"
 
+std::atomic_bool global_run_flag(true);
+using namespace http;
+TcpServer server = TcpServer("0.0.0.0", 8080);
+
+void signal_callback_handler(int signum) {
+    std::cout << "Caught signal " << signum << std::endl;
+    // Terminate program
+    global_run_flag = false;
+    server.closeServer();
+}
+
 int main() {
-    using namespace http;
-    TcpServer server = TcpServer("0.0.0.0", 8080);
-    bool serverClosed = server.startListen();
+    signal(SIGINT, &signal_callback_handler);
+    server.startListen(&global_run_flag);
 
-    // TODO: doesn't work. Server needs to be closed properly
-    // std::cout << "Server status: " << serverClosed << std::endl;
-    // if (serverClosed) {
-    //     server.closeServer();
-    // }
-
+    // std::cout << "global_run_flag" << std::boolalpha << global_run_flag << std::endl;
+    // server.closeServer();
     return 0;
 }

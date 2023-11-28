@@ -1,6 +1,5 @@
 
 #include "cpp_webserver/http_server_linux.hpp"
-#include "cpp_webserver/server_logging.hpp"
 
 #include <unistd.h>
 
@@ -10,10 +9,13 @@
 #include <sstream>
 #include <string>
 
+#include "cpp_webserver/server_logging.hpp"
+
 namespace http {
 
 TcpServer::TcpServer(std::string ip_address, int port)
-    : m_ip_address(ip_address),
+    : _local_run_flag(true),
+      m_ip_address(ip_address),
       m_port(port),
       m_socket(),
       m_new_socket(),
@@ -27,7 +29,7 @@ TcpServer::TcpServer(std::string ip_address, int port)
 
     /**
      * debugging information
-    */
+     */
     logger::log("m_ip_address: " + m_ip_address);
     logger::log("m_port: " + std::to_string(m_port));
     logger::log("m_socket: " + std::to_string(m_socket));
@@ -56,7 +58,6 @@ int TcpServer::startServer() {
     }
 
     if (bind(m_socket, (sockaddr *)&m_socketAddress, m_socketAddress_len) < 0) {
-
         logger::exitWithError("Cannot connect socket to address");
         return 1;
     }
@@ -65,12 +66,15 @@ int TcpServer::startServer() {
 }
 
 void TcpServer::closeServer() {
+    logger::log("Shutting down server...");
     close(m_socket);
     close(m_new_socket);
+    _local_run_flag = false;
+    logger::log("Server closed");
     exit(0);
 }
 
-void TcpServer::startListen() {
+void TcpServer::startListen(std::atomic_bool global_run_flag) {
     if (listen(m_socket, 20) < 0) {
         logger::exitWithError("Socket listen failed");
     }
@@ -83,7 +87,7 @@ void TcpServer::startListen() {
 
     int bytesReceived;
 
-    while (true) {
+    while (_local_run_flag && global_run_flag) {
         logger::log("====== Waiting for a new connection ======\n");
         acceptConnection(m_new_socket);
 
@@ -101,7 +105,6 @@ void TcpServer::startListen() {
 
         close(m_new_socket);
     }
-
 }
 
 void TcpServer::acceptConnection(int &new_socket) {
