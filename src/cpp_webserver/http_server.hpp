@@ -7,8 +7,8 @@
 
 class HttpServer {
    public:
-    HttpServer(const char *port) : port(port), server_socket(0){};
-    ~HttpServer();
+    HttpServer(const char *port);
+    // ~HttpServer();
     void start();
 
    private:
@@ -22,6 +22,8 @@ class HttpServer {
     bool listenSocket();
     void handleRequest(int client_socket);
     void acceptConnections();
+    void sendHttpGetResponse(int client_socket);
+    void sendCustomResponse(int client_socket, const char *response);
 };
 
 #endif

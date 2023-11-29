@@ -17,9 +17,10 @@ prerequisites:
 	@ mkdir -p $(BuildObjectsDir)
 
 ./build/bin/main: \
+		$(BuildObjectsDir)/main.o \
 		$(BuildObjectsDir)/http_server.o \
 		$(BuildObjectsDir)/server_logging.o \
-		# $(BuildObjectsDir)/route_handler.o \
+		$(BuildObjectsDir)/route_handler.o | prerequisites
 		# $(BuildObjectsDir)/syntax_validation.o | prerequisites
 	@ echo Building $@ from $^
 	@ $(CC) -o $@ $^
