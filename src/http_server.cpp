@@ -14,12 +14,11 @@
 #include <string>
 #include <thread>
 
-// #include "cpp_webserver/route_handler.hpp"
 #include "cpp_webserver/server_logging.hpp"
 
 HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
-    // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
-    // routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
+    routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
+    routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
 }
 
 void HttpServer::start() {
@@ -33,14 +32,17 @@ void HttpServer::start() {
 // Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
     switch (sa->sa_family) {
+        // IPv4
         case AF_INET:
             inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr), s, maxlen);
             break;
 
+        // IPv6
         case AF_INET6:
             inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr), s, maxlen);
             break;
 
+        // Error
         default:
             strncpy(s, "Unknown AF", maxlen);
             return NULL;
@@ -85,22 +87,17 @@ void HttpServer::handleRequest(int client_socket) {
     char buffer[1024] = {0};
     read(client_socket, buffer, sizeof(buffer));
 
-    // Simple response
-    // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
-    // write(client_socket, response, strlen(response));
-
     // Parse the request to determine the type (e.g., GET, POST) and extract relevant information
     // For simplicity, let's assume a basic HTTP GET request
     std::string request(buffer);
 
-    // std::cout << request << std::endl;
-    // Check if it's a GET request
-    if (request.find("GET /test HTTP/1.1") != std::string::npos) {
-        logger::log("\n" + request);
+    // std::cout << "Request: " << request << std::endl;
+    if (routeHandler.checkRoutes(request)) {
         sendHttpGetResponse(client_socket);
     } else {
-        sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+        sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     }
+
     logger::log("Sent response...");
 
     close(client_socket);

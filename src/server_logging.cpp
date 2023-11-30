@@ -10,6 +10,6 @@ void log(const std::string& message, const char* functionName = __builtin_FUNCTI
 
 void exitWithError(const std::string& errorMessage, const char* functionName = __builtin_FUNCTION()) {
     std::cout << "[ERROR][" << functionName << "]: " << errorMessage << std::endl;
-    exit(1);
+    // exit(1);
 }
 }  // namespace logger

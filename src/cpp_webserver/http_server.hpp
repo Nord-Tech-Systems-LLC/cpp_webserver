@@ -2,8 +2,9 @@
 
 #ifndef HTTP_SERVER_H
 #define HTTP_SERVER_H
-
 #include <cstring>
+
+#include "route_handler.hpp"
 
 class HttpServer {
    public:
@@ -14,6 +15,7 @@ class HttpServer {
    private:
     const char *port;
     int server_socket;
+    RouteHandler routeHandler;
 
     // Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
     char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen);
