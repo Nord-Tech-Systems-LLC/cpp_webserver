@@ -139,8 +139,8 @@ void HttpServer::acceptConnections() {
         // }
 
         // Start a new thread for each connection
-        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        // client_thread.detach();  // Detach the thread to allow it to run independently
+        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        client_thread.detach();  // Detach the thread to allow it to run independently
 
         handleRequest(client_socket);
     }

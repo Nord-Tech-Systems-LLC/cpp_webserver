@@ -15,7 +15,7 @@ int main() {
 
     server.addRoute("/other", [](int client_socket) {
         // Custom response for the /other path
-        const char *htmlResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 26\r\n\r\n{\"message\":\"Hello!\"}";
+        const char *htmlResponse = "HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\nThis was other!";
         // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nCustom Route!";
         // ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
         // if (bytes_written == -1) {
