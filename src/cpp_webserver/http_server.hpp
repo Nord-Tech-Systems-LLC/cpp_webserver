@@ -11,6 +11,7 @@ class HttpServer {
     HttpServer(const char *port);
     // ~HttpServer();
     void start();
+    void addRoute(const std::string &path, std::function<void(int)> handler);
 
    private:
     const char *port;

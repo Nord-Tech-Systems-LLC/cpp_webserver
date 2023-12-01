@@ -17,8 +17,8 @@
 #include "cpp_webserver/server_logging.hpp"
 
 HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
-    routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
-    routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
+    // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
+    // routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
 }
 
 void HttpServer::start() {
@@ -27,6 +27,10 @@ void HttpServer::start() {
         acceptConnections();
     }
     close(server_socket);
+}
+
+void HttpServer::addRoute(const std::string &path, std::function<void(int)> handler) {
+    routeHandler.addRoute(path, handler);
 }
 
 // Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
@@ -92,11 +96,19 @@ void HttpServer::handleRequest(int client_socket) {
     std::string request(buffer);
 
     // std::cout << "Request: " << request << std::endl;
-    if (routeHandler.checkRoutes(request)) {
-        sendHttpGetResponse(client_socket);
-    } else {
+    // << std::endl;
+
+    // logger::log("Sending response...");
+    bool route_exists = routeHandler.handleRequest(client_socket, request);
+    std::cout << "Testing: " << std::boolalpha << route_exists << std::endl;
+    if (!route_exists) {
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     }
+    // if (routeHandler.checkRoutes(request)) {
+    //     // sendHttpGetResponse(client_socket);
+    // } else {
+    //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+    // }
 
     logger::log("Sent response...");
 
@@ -136,8 +148,8 @@ void HttpServer::acceptConnections() {
 
 void HttpServer::sendHttpGetResponse(int client_socket) {
     // Custom response for a GET request
-    const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
-    write(client_socket, response, strlen(response));
+    // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
+    // write(client_socket, response, strlen(response));
 }
 
 void HttpServer::sendCustomResponse(int client_socket, const char *response) {
