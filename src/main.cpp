@@ -2,15 +2,19 @@
 
 #include "cpp_webserver/http_server.hpp"
 #include "cpp_webserver/server_logging.hpp"
+#include "http_request.cpp"
 
 int main() {
     HttpServer server("8080");
 
     // Add additional routes
     server.addRoute("/custom", [](int client_socket) {
-        std::cout.flush();
+        // std::cout.flush();
+        // HandleHttpRequest readRequest;
+
         // Custom response for the /custom path
         const char *htmlResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 18\r\n\r\n<html><body>Hello!</body></html>";
+        // readRequest.handleConnection(client_socket, htmlResponse);
         // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nCustom Route!";
         // logger::log(htmlResponse);
         logger::log("Expected Response: ", htmlResponse);
@@ -23,9 +27,11 @@ int main() {
     });
 
     server.addRoute("/testing", [](int client_socket) {
-        std::cout.flush();
+        // std::cout.flush();
+        // HandleHttpRequest readRequest;
         // Custom response for the /other path
         const char *otherHtmlResponse = "HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\n<html><body>This was other!</body></html>";
+        // readRequest.handleConnection(client_socket, otherHtmlResponse);
         // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nCustom Route!";
         logger::log("Expected Response: ", otherHtmlResponse);
         ssize_t bytes_written = write(client_socket, otherHtmlResponse, strlen(otherHtmlResponse));

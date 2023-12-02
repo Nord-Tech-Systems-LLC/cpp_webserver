@@ -113,9 +113,12 @@ void HttpServer::handleRequest(int client_socket) {
 
     // logger::log("Sending response...");
     // bool route_exists = routeHandler.handleRequest(client_socket, request);
-    std::cout << request << std::endl;
-    
+    // std::cout << request << std::endl;
+    // HandleHttpRequest readRequest;
 
+    // const char *otherHtmlResponse = "HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\n<html><body>This was other!</body></html>";
+    // readRequest.handleConnection(client_socket, otherHtmlResponse);
+    logger::log("Sent response...");
     // if route does not exist
     if (!routeHandler.handleRequest(client_socket, request)) {
         logger::log("client_socket" + client_socket);
@@ -129,7 +132,7 @@ void HttpServer::handleRequest(int client_socket) {
         routeHandler.handleRequest(client_socket, request);
         
         close(client_socket);
-        logger::log("Sent response...");
+
     }
 
 
