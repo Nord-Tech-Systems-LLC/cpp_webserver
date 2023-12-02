@@ -1,7 +1,7 @@
 
 
 #include "cpp_webserver/http_server.hpp"
-
+#include "http_request.cpp"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -91,21 +91,31 @@ void HttpServer::handleRequest(int client_socket) {
     // std::cout.flush();
     // std::cin.clear();
     char buffer[1024];
-
     read(client_socket, buffer, sizeof(buffer));
-    logger::log(buffer);
-    // Parse the request to determine the type (e.g., GET, POST) and extract relevant information
-    // For simplicity, let's assume a basic HTTP GET request
-    std::string request(buffer);
+    // logger::log(buffer);
 
-    // std::cout << "Request: " << request << std::endl;
-    // << std::endl;
+    // parse the request to determine the type (e.g., GET, POST) and extract relevant information
+    std::string request(buffer);
+    HttpRequest parsedRequest = parseHttpRequest(request);
+
+    // to parse and get headers
+    for (const auto &header: parsedRequest.headers) {
+        // to parse and get headers
+        // std::cout << header.first << ": "
+        // << header.second << "\n";
+    }
+
+    // for debugging
+    std::cout << "Method: " << parsedRequest.method << std::endl;
+    std::cout << "Path: " << parsedRequest.path << std::endl;
+    std::cout << "Body: " << parsedRequest.body << std::endl;
 
     // logger::log("Sending response...");
     // bool route_exists = routeHandler.handleRequest(client_socket, request);
     // std::cout << "Testing: " << std::boolalpha << request << std::endl;
     // routeHandler.handleRequest(client_socket, request);
 
+    // if route does not exist
     if (!routeHandler.handleRequest(client_socket, request)) {
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     }
@@ -144,12 +154,14 @@ void HttpServer::acceptConnections() {
         // }
 
         // Start a new thread for each connection
-        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        // client_thread.detach();  // Detach the thread to allow it to run independently
+        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        client_thread.detach();  // Detach the thread to allow it to run independently
 
         handleRequest(client_socket);
     }
 }
+
+
 
 void HttpServer::sendHttpGetResponse(int client_socket) {
     // Custom response for a GET request

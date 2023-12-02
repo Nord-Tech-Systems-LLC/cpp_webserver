@@ -28,11 +28,11 @@ std::string returnCurrentTimeAndDate() {
 }
 
 void log(const std::string& message, const char* functionName = __builtin_FUNCTION()) {
-    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName << "]: " << message << std::endl;
+    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName << "]: " << message << "\n";
 }
 
 void exitWithError(const std::string& errorMessage, const char* functionName = __builtin_FUNCTION()) {
-    std::cout << red << "[ERROR]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName << "]: " << errorMessage << std::endl;
+    std::cout << red << "[ERROR]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName << "]: " << errorMessage << "\n";
     // exit(1);
 }
 }  // namespace logger
