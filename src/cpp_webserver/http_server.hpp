@@ -12,6 +12,7 @@ class HttpServer {
     // ~HttpServer();
     void start();
     void addRoute(const std::string &path, std::function<void(int)> handler);
+    void sendCustomResponse(int client_socket, const char *response);
 
    private:
     const char *port;
@@ -26,7 +27,6 @@ class HttpServer {
     void handleRequest(int client_socket);
     void acceptConnections();
     void sendHttpGetResponse(int client_socket);
-    void sendCustomResponse(int client_socket, const char *response);
 };
 
 #endif

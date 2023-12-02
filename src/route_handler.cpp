@@ -1,5 +1,7 @@
 #include "cpp_webserver/route_handler.hpp"
 
+#include <unistd.h>
+
 #include <functional>
 #include <iostream>
 #include <map>
@@ -66,11 +68,13 @@ std::map<std::string, std::string> RouteHandler::parseHttpRequest(const std::str
 }
 
 bool RouteHandler::handleRequest(int client_socket, const std::string& request) {
+    bool route_exists = false;
     for (const auto& route : routes) {
         if (request.find(route.first) != std::string::npos) {
             route.second(client_socket);
-            return true;
+            // close(client_socket);
+            route_exists = true;
         }
     }
-    return false;  // No matching route found
+    return route_exists;  // No matching route found
 }

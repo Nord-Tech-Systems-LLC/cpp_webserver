@@ -88,9 +88,12 @@ bool HttpServer::listenSocket() {
 }
 
 void HttpServer::handleRequest(int client_socket) {
-    char buffer[1024] = {0};
-    read(client_socket, buffer, sizeof(buffer));
+    // std::cout.flush();
+    // std::cin.clear();
+    char buffer[1024];
 
+    read(client_socket, buffer, sizeof(buffer));
+    logger::log(buffer);
     // Parse the request to determine the type (e.g., GET, POST) and extract relevant information
     // For simplicity, let's assume a basic HTTP GET request
     std::string request(buffer);
@@ -99,17 +102,19 @@ void HttpServer::handleRequest(int client_socket) {
     // << std::endl;
 
     // logger::log("Sending response...");
-    bool route_exists = routeHandler.handleRequest(client_socket, request);
-    std::cout << "Testing: " << std::boolalpha << route_exists << std::endl;
-    if (!route_exists) {
+    // bool route_exists = routeHandler.handleRequest(client_socket, request);
+    // std::cout << "Testing: " << std::boolalpha << request << std::endl;
+    // routeHandler.handleRequest(client_socket, request);
+
+    if (!routeHandler.handleRequest(client_socket, request)) {
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     }
+
     // if (routeHandler.checkRoutes(request)) {
     //     // sendHttpGetResponse(client_socket);
     // } else {
     //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     // }
-
     logger::log("Sent response...");
 
     close(client_socket);
@@ -139,8 +144,8 @@ void HttpServer::acceptConnections() {
         // }
 
         // Start a new thread for each connection
-        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        client_thread.detach();  // Detach the thread to allow it to run independently
+        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        // client_thread.detach();  // Detach the thread to allow it to run independently
 
         handleRequest(client_socket);
     }
@@ -155,4 +160,5 @@ void HttpServer::sendHttpGetResponse(int client_socket) {
 void HttpServer::sendCustomResponse(int client_socket, const char *response) {
     // Send a custom response
     write(client_socket, response, strlen(response));
+    close(client_socket);
 }
