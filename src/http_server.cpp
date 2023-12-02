@@ -17,6 +17,7 @@
 #include "cpp_webserver/server_logging.hpp"
 
 HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
+
     // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
     // routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
 }
@@ -90,44 +91,50 @@ bool HttpServer::listenSocket() {
 void HttpServer::handleRequest(int client_socket) {
     // std::cout.flush();
     // std::cin.clear();
-    char buffer[1024];
+    char buffer[3060];
     read(client_socket, buffer, sizeof(buffer));
     // logger::log(buffer);
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
     std::string request(buffer);
-    HttpRequest parsedRequest = parseHttpRequest(request);
+    // HttpRequest parsedRequest = parseHttpRequest(request);
 
     // to parse and get headers
-    for (const auto &header: parsedRequest.headers) {
-        // to parse and get headers
-        // std::cout << header.first << ": "
-        // << header.second << "\n";
-    }
+    // for (const auto &header: parsedRequest.headers) {
+    //     // to parse and get headers
+    //     std::cout << header.first << ": "
+    //     << header.second << "\n";
+    // }
 
-    // for debugging
-    std::cout << "Method: " << parsedRequest.method << std::endl;
-    std::cout << "Path: " << parsedRequest.path << std::endl;
-    std::cout << "Body: " << parsedRequest.body << std::endl;
+    // // for debugging
+    // std::cout << "Method: " << parsedRequest.method << std::endl;
+    // std::cout << "Path: " << parsedRequest.path << std::endl;
+    // std::cout << "Body: " << parsedRequest.body << std::endl;
 
     // logger::log("Sending response...");
     // bool route_exists = routeHandler.handleRequest(client_socket, request);
-    // std::cout << "Testing: " << std::boolalpha << request << std::endl;
-    // routeHandler.handleRequest(client_socket, request);
+    std::cout << request << std::endl;
+    
 
     // if route does not exist
     if (!routeHandler.handleRequest(client_socket, request)) {
+        logger::log("client_socket" + client_socket);
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+    } else {
+        // if (routeHandler.checkRoutes(request)) {
+        //     // sendHttpGetResponse(client_socket);
+        // } else {
+        //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+        // }
+        routeHandler.handleRequest(client_socket, request);
+        
+        close(client_socket);
+        logger::log("Sent response...");
     }
 
-    // if (routeHandler.checkRoutes(request)) {
-    //     // sendHttpGetResponse(client_socket);
-    // } else {
-    //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
-    // }
-    logger::log("Sent response...");
 
-    close(client_socket);
+
+
 }
 
 void HttpServer::acceptConnections() {
@@ -154,8 +161,8 @@ void HttpServer::acceptConnections() {
         // }
 
         // Start a new thread for each connection
-        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        client_thread.detach();  // Detach the thread to allow it to run independently
+        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        // client_thread.detach();  // Detach the thread to allow it to run independently
 
         handleRequest(client_socket);
     }
