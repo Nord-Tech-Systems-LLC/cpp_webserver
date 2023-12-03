@@ -1,47 +1,86 @@
 #include <unistd.h>
 
+#include <string>
+
 #include "cpp_webserver/http_server.hpp"
 #include "cpp_webserver/server_logging.hpp"
 #include "http_request.cpp"
+std::string contentLength(std::string &input_body) {
+    // input html return content length
+    return std::to_string(input_body.size());
+}
 
 int main() {
     HttpServer server("8080");
 
     // Add additional routes
     server.addRoute("/custom", [](int client_socket) {
-        // std::cout.flush();
-        // HandleHttpRequest readRequest;
+        // buffer size
+        char *buf[540];
+        // response
+        std::string body = "<html><body>Hello!</body></html>";
+        std::string body_count = contentLength(body);
 
-        // Custom response for the /custom path
-        const char *htmlResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 18\r\n\r\n<html><body>Hello!</body></html>";
-        // readRequest.handleConnection(client_socket, htmlResponse);
-        // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nCustom Route!";
+        // make string to combine content-length
+        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + body_count + "\r\n\r\n" + body;
+        const char *htmlResponse = string_response.c_str();
+
         // logger::log(htmlResponse);
-        logger::log("Expected Response: ", htmlResponse);
-        // write(client_socket, htmlResponse, strlen(htmlResponse));
+
+        // while bytes_written is less than byte_count_transfer
+        int byte_count_transfer = 0;
         ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
-        if (bytes_written == -1) {
-            perror("Error writing to client socket");
-        }
-        // close(client_socket);
+        do {
+            byte_count_transfer++;
+        } while (byte_count_transfer <= bytes_written);
+        close(client_socket);
     });
 
     server.addRoute("/testing", [](int client_socket) {
-        // std::cout.flush();
-        // HandleHttpRequest readRequest;
-        // Custom response for the /other path
-        const char *otherHtmlResponse = "HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\n<html><body>This was other!</body></html>";
-        // readRequest.handleConnection(client_socket, otherHtmlResponse);
-        // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nCustom Route!";
-        logger::log("Expected Response: ", otherHtmlResponse);
-        ssize_t bytes_written = write(client_socket, otherHtmlResponse, strlen(otherHtmlResponse));
-        if (bytes_written == -1) {
-            perror("Error writing to client socket");
-        }
-        
-        // write(client_socket, otherHtmlResponse, strlen(otherHtmlResponse));
-        // close(client_socket);
+        // buffer size
+        char *buf[540];
+
+        // response
+        std::string body = "{\"message\": \"testing\"}";
+        std::string body_count = contentLength(body);
+
+        // make string to combine content-length
+        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
+        const char *htmlResponse = string_response.c_str();
+
+        // logger::log(htmlResponse);
+
+        // while bytes_written is less than byte_count_transfer
+        int byte_count_transfer = 0;
+        ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
+        do {
+            byte_count_transfer++;
+        } while (byte_count_transfer <= bytes_written);
+        close(client_socket);
     });
+
+    // server.addRoute("/2", [](int client_socket) {
+    //     // buffer size
+    //     char *buf[540];
+
+    //     // response
+    //     std::string body = "<html><body>Page 3!</body></html>";
+    //     std::string body_count = contentLength(body);
+
+    //     // make string to combine content-length
+    //     std::string string_response = "HTTP/1.1 200 OK\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
+    //     const char *htmlResponse = string_response.c_str();
+
+    //     // logger::log(htmlResponse);
+
+    //     // while bytes_written is less than byte_count_transfer
+    //     int byte_count_transfer = 0;
+    //     ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
+    //     do {
+    //         byte_count_transfer++;
+    //     } while (byte_count_transfer <= bytes_written);
+    //     close(client_socket);
+    // });
 
     server.start();
 
