@@ -45,7 +45,7 @@ int main() {
         std::string body_count = contentLength(body);
 
         // make string to combine content-length
-        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
+        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
         const char *htmlResponse = string_response.c_str();
 
         // logger::log(htmlResponse);
