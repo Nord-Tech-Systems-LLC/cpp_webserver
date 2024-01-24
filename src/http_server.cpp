@@ -1,7 +1,7 @@
 
 
 #include "cpp_webserver/http_server.hpp"
-#include "http_request.cpp"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -15,9 +15,9 @@
 #include <thread>
 
 #include "cpp_webserver/server_logging.hpp"
+#include "http_request.cpp"
 
 HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
-
     // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
     // routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
 }
@@ -89,7 +89,7 @@ bool HttpServer::listenSocket() {
 }
 
 void HttpServer::handleRequest(int client_socket) {
-    // std::cout.flush();
+    std::cout.flush();
     // std::cin.clear();
     char buffer[3060];
     read(client_socket, buffer, sizeof(buffer));
@@ -121,7 +121,7 @@ void HttpServer::handleRequest(int client_socket) {
     logger::log("Sent response...");
     // if route does not exist
     if (!routeHandler.handleRequest(client_socket, request)) {
-        logger::log("client_socket" + client_socket);
+        logger::log("client_socket " + std::to_string(client_socket));
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
     } else {
         // if (routeHandler.checkRoutes(request)) {
@@ -130,14 +130,9 @@ void HttpServer::handleRequest(int client_socket) {
         //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         // }
         routeHandler.handleRequest(client_socket, request);
-        
+
         close(client_socket);
-
     }
-
-
-
-
 }
 
 void HttpServer::acceptConnections() {
@@ -170,8 +165,6 @@ void HttpServer::acceptConnections() {
         handleRequest(client_socket);
     }
 }
-
-
 
 void HttpServer::sendHttpGetResponse(int client_socket) {
     // Custom response for a GET request
