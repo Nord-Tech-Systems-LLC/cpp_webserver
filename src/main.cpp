@@ -8,8 +8,8 @@
 
 /**
  * TODO:
- * - When routes consist of a number first i.e. /2 -- route gets stuck and can't move
- * - Route matching needs to be revised to exact instead of relative i.e. /other and /other2 returns /other route
+ * 
+ * 
  */
 
 std::string contentLength(std::string &input_body) {
