@@ -16,6 +16,8 @@ class RouteHandler {
    private:
     std::map<std::string, std::string> parseHttpRequest(const std::string& requestBuffer);
     std::map<std::string, std::function<void(int)>> routes;
+    // map to store method, route, and http version
+    std::map<std::string, std::string> parsedInfo;
 };
 
 #endif

@@ -38,9 +38,6 @@ bool RouteHandler::checkRoutes(const std::string& route_request) {
 }
 
 std::map<std::string, std::string> RouteHandler::parseHttpRequest(const std::string& requestBuffer) {
-    // map to store method, route, and http version
-    std::map<std::string, std::string> parsedInfo;
-
     // Find the position of the first '\r\n'
     size_t endOfFirstLine = requestBuffer.find("\r\n");
 
@@ -67,25 +64,13 @@ std::map<std::string, std::string> RouteHandler::parseHttpRequest(const std::str
     return parsedInfo;
 }
 
-std::string returnRoute(const std::string& route_input) {
-    size_t firstSpace = route_input.find(' ');
-    if (firstSpace == std::string::npos) {
-        return "";  // Return an empty string if space is not found
-    }
-    size_t secondSpace = route_input.find(' ', firstSpace + 1);
-    if (secondSpace == std::string::npos) {
-        return "";  // Return an empty string if second space is not found
-    }
-
-    return route_input.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-}
-
 bool RouteHandler::handleRequest(int client_socket, const std::string& request) {
+    parseHttpRequest(request);
     std::cout << "Request: " << request << std::endl;
     bool route_exists = false;
     for (const auto& route : routes) {
         // check if route exists
-        if (returnRoute(request) == route.first) {
+        if (parsedInfo["route"] == route.first) {
             route.second(client_socket);
             close(client_socket);
             route_exists = true;
