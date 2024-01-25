@@ -64,9 +64,10 @@ std::map<std::string, std::string> RouteHandler::parseHttpRequest(const std::str
     return parsedInfo;
 }
 
-bool RouteHandler::handleRequest(int client_socket, const std::string& request) {
-    parseHttpRequest(request);
+bool RouteHandler::verifyRouteExists(int client_socket, const std::string& request) {
     std::cout << "Request: " << request << std::endl;
+    parseHttpRequest(request);
+
     bool route_exists = false;
     for (const auto& route : routes) {
         // check if route exists

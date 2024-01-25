@@ -97,6 +97,7 @@ void HttpServer::handleRequest(int client_socket) {
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
     std::string request(buffer);
+
     // HttpRequest parsedRequest = parseHttpRequest(request);
 
     // to parse and get headers
@@ -120,7 +121,7 @@ void HttpServer::handleRequest(int client_socket) {
     // readRequest.handleConnection(client_socket, otherHtmlResponse);
     logger::log("Sent response...");
     // if route does not exist
-    if (!routeHandler.handleRequest(client_socket, request)) {
+    if (!routeHandler.verifyRouteExists(client_socket, request)) {
         logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         close(client_socket);
@@ -130,8 +131,9 @@ void HttpServer::handleRequest(int client_socket) {
         // } else {
         //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         // }
-        routeHandler.handleRequest(client_socket, request);
-        close(client_socket);
+        // std::cout << "REQUEST: " << request << std::endl;
+        routeHandler.verifyRouteExists(client_socket, request);
+        // close(client_socket);
     }
 }
 

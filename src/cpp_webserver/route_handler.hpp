@@ -10,7 +10,7 @@
 class RouteHandler {
    public:
     void addRoute(const std::string& path, std::function<void(int)> handler);
-    bool handleRequest(int client_socket, const std::string& request);
+    bool verifyRouteExists(int client_socket, const std::string& request);
     bool checkRoutes(const std::string& route_request);
 
    private:
