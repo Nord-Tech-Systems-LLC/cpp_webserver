@@ -40,7 +40,7 @@ int main() {
         do {
             byte_count_transfer++;
         } while (byte_count_transfer <= bytes_written);
-        close(client_socket);
+        // close(client_socket);
     });
 
     server.addRoute("/testing", [](int client_socket) {
@@ -63,7 +63,7 @@ int main() {
         do {
             byte_count_transfer++;
         } while (byte_count_transfer <= bytes_written);
-        close(client_socket);
+        // close(client_socket);
     });
 
     server.addRoute("/other", [](int client_socket) {
@@ -86,7 +86,7 @@ int main() {
         do {
             byte_count_transfer++;
         } while (byte_count_transfer <= bytes_written);
-        close(client_socket);
+        // close(client_socket);
     });
 
     server.start();

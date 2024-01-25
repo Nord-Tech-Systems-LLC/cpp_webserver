@@ -82,12 +82,14 @@ std::string returnRoute(const std::string &route_input) {
 }
 
 bool RouteHandler::handleRequest(int client_socket, const std::string& request) {
+
     bool route_exists = false;
     for (const auto& route : routes) {
         // check if route exists
         if (returnRoute(request) == route.first) {
+
             route.second(client_socket);
-            // close(client_socket);
+            close(client_socket);
             route_exists = true;
         }
     }
