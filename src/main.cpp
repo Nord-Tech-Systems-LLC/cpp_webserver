@@ -8,7 +8,7 @@
 
 /**
  * TODO:
- * 
+ * - move write function from addRoute functions below to handleRequest
  * 
  */
 
