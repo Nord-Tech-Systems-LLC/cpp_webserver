@@ -29,16 +29,4 @@ class HttpServer {
     void sendHttpGetResponse(int client_socket);
 };
 
-class Request {
-   private:
-    Request(int client_socket);
-    ~Request();
-};
-
-class Response {
-   private:
-    Response(int client_socket);
-    ~Response();
-};
-
 #endif
