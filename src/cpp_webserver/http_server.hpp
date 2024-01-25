@@ -27,6 +27,11 @@ class HttpServer {
     void handleRequest(int client_socket);
     void acceptConnections();
     void sendHttpGetResponse(int client_socket);
+
+    // request / response
+    // map to store method, route, and http version
+    std::map<std::string, std::string> parsedInfo;
+    std::map<std::string, std::string> parseHttpRequest(const std::string &requestBuffer);
 };
 
 #endif
