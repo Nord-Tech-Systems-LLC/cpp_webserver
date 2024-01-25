@@ -121,8 +121,9 @@ void HttpServer::handleRequest(int client_socket) {
     logger::log("Sent response...");
     // if route does not exist
     if (!routeHandler.handleRequest(client_socket, request)) {
-        logger::log("client_socket " + std::to_string(client_socket));
+        logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
         sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+        close(client_socket);
     } else {
         // if (routeHandler.checkRoutes(request)) {
         //     // sendHttpGetResponse(client_socket);
@@ -130,7 +131,6 @@ void HttpServer::handleRequest(int client_socket) {
         //     sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         // }
         routeHandler.handleRequest(client_socket, request);
-
         close(client_socket);
     }
 }
