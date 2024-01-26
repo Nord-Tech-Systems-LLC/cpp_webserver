@@ -18,11 +18,10 @@ void RouteHandler::addRoute(const std::string& path, std::function<void(int)> ha
 bool RouteHandler::checkRoutes(const std::string& route_request) {
     try {
         std::string requestRoute = parsedInfo["route"];
-
+        logger::log("Received route \"" + requestRoute + "\"");
         for (const auto& route : routes) {
             // std::cout << "Route first: " << route.first << std::endl;
             if (route.first == requestRoute) {
-                logger::log("Correct route \"" + route.first + "\" found.");
                 return true;
             }
         }

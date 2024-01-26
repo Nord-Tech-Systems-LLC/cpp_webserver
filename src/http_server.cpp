@@ -125,17 +125,17 @@ void HttpServer::acceptConnections() {
 
     while (true) {
         int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
-        logger::log("Received request...");
+        logger::log("Received request from: " + std::to_string(client_socket));
         if (client_socket == -1) {
             perror("Accept failed");
             break;
         }
 
+        handleRequest(client_socket);
         // Start a new thread for each connection
         // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        // client_thread.detach();  // Detach the thread to allow it to run independently
 
-        handleRequest(client_socket);
+        // client_thread.detach();  // Detach the thread to allow it to run independently
     }
 }
 
