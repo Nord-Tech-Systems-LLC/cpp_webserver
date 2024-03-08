@@ -4,7 +4,6 @@
 
 #include "cpp_webserver/http_server.hpp"
 #include "cpp_webserver/server_logging.hpp"
-#include "http_request.cpp"
 
 /**
  * TODO:
@@ -61,9 +60,6 @@ int main() {
     });
 
     server.print_routes();
-
-
-
 
     server.start();
 

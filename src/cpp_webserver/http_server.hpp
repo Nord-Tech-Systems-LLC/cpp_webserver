@@ -102,13 +102,11 @@ class HttpServer {
     void sendCustomResponse(int client_socket, const char *response);
     void print_routes();
 
-
-
    private:
     const char *port;
     int server_socket;
 
-    // Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
+    // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
     char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen);
     bool createSocket();
     bool bindSocket();
