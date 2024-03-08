@@ -1,6 +1,7 @@
 
 
-#include "cpp_webserver/http_server.hpp"
+#include "../hpp_files/http_server.hpp"
+#include "../hpp_files/server_logging.hpp"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -14,8 +15,6 @@
 #include <string>
 #include <thread>
 #include <sstream>
-
-#include "cpp_webserver/server_logging.hpp"
 
 HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
     // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
