@@ -8,6 +8,11 @@
 #include <string>
 
 class Request {
+    private:
+        std::string method;
+        std::string path;
+        std::map<std::string, std::string> headers;
+        std::string body;
     public:
         // getters
         std::string getMethod() const {
@@ -42,11 +47,13 @@ class Request {
         void setBody(std::string newBody) {
             body = newBody;
         }
-    private:
-        std::string method;
-        std::string path;
-        std::map<std::string, std::string> headers;
-        std::string body;
+
+        // helper methods
+        std::string contentLength(const std::string &input_body) {
+            // input html return content length
+            return std::to_string(input_body.size());
+        };
+
 };
 
 class Response {
@@ -90,6 +97,12 @@ class Response {
         void setBody(std::string newBody) {
             body = newBody;
         }
+
+        // helper methods
+        std::string contentLength(const std::string &input_body) {
+            // input html return content length
+            return std::to_string(input_body.size());
+        };
 };
 
 class HttpServer {
@@ -97,11 +110,14 @@ class HttpServer {
     HttpServer(const char *port);
     // ~HttpServer();
     void start();
-
-    void addRoute(const std::string &path, std::function<void(Request&, Response&)> handler);
-    void sendCustomResponse(int client_socket, const char *response);
     void printRoutes();
-    std::string contentLength(const std::string &input_body);
+
+    // dispatch events
+    void getMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
+    void postMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
+    void putMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
+    void deleteMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
+
    private:
     const char *port;
     int server_socket;
@@ -113,9 +129,8 @@ class HttpServer {
     bool listenSocket();
     void handleRequest(int client_socket);
     void acceptConnections();
-    void sendHttpGetResponse(int client_socket);
 
-    // request / response
+    // request & response
     Request httpRequest;
     Response httpResponse;
     bool checkRoutes(const std::string& route_request);

@@ -29,9 +29,19 @@ void HttpServer::start() {
     close(server_socket);
 }
 
-void HttpServer::addRoute(const std::string &path, std::function<void(Request&, Response&)> handler) {
+void HttpServer::getMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
     routes[path] = handler;
 }
+void HttpServer::postMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
+    routes[path] = handler;
+}
+void HttpServer::putMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
+    routes[path] = handler;
+}
+void HttpServer::deleteMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
+    routes[path] = handler;
+}
+
 
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
@@ -105,6 +115,7 @@ void HttpServer::handleRequest(int client_socket) {
 
     logger::log("Sent response...");
     parseHttpRequest(request);
+    logger::log("Request: " + request);
 
     // if route exists
     if (checkRoutes(request)) {
@@ -128,7 +139,7 @@ void HttpServer::handleRequest(int client_socket) {
         logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
         // construct response
         std::string customResponse = "There was an error!";
-        std::string request_body_count = contentLength(customResponse);
+        std::string request_body_count = httpResponse.contentLength(customResponse);
 
         // set body of response to send
         httpResponse.setBody("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + customResponse);
@@ -191,18 +202,6 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
     return parsedInfo;
 }
 
-void HttpServer::sendHttpGetResponse(int client_socket) {
-    // custom response for a GET request
-    // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
-    // write(client_socket, response, strlen(response));
-}
-
-void HttpServer::sendCustomResponse(int client_socket, const char *response) {
-    // Send a custom response
-    write(client_socket, response, strlen(response));
-    close(client_socket);
-}
-
 bool HttpServer::checkRoutes(const std::string& route_request) {
     try {
         std::string requestRoute = parsedInfo["route"];
@@ -218,10 +217,4 @@ bool HttpServer::checkRoutes(const std::string& route_request) {
         logger::exitWithError(error.what());
     }
     return false;
-}
-
-
-std::string HttpServer::contentLength(const std::string &input_body) {
-    // input html return content length
-    return std::to_string(input_body.size());
 }
