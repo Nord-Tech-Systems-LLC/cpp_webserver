@@ -12,7 +12,7 @@
  * 
  */
 
-std::string contentLength(std::string &input_body) {
+std::string contentLength(const std::string &input_body) {
     // input html return content length
     return std::to_string(input_body.size());
 }
@@ -21,73 +21,49 @@ int main() {
     HttpServer server("8080");
 
     // Add additional routes
-    server.addRoute("/custom", [](int client_socket) {
-        // buffer size
-        char *buf[540];
-        // response
-        std::string body = "<html><body>Hello!</body></html>";
-        std::string body_count = contentLength(body);
-
-        // make string to combine content-length
-        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + body_count + "\r\n\r\n" + body;
-        const char *htmlResponse = string_response.c_str();
-
-        // logger::log(htmlResponse);
-
-        // while bytes_written is less than byte_count_transfer
-        int byte_count_transfer = 0;
-        ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
-        do {
-            byte_count_transfer++;
-        } while (byte_count_transfer <= bytes_written);
-        // close(client_socket);
-    });
-
-    server.addRoute("/testing", [](int client_socket) {
+    server.addRoute("/custom", [](Request &httpRequest, Response &httpResponse) {
         // buffer size
         char *buf[540];
 
+        // request
+        httpRequest.setBody("<html><body>Hello!</body></html>");
+        std::string request_body_count = contentLength(httpRequest.getBody());
+
         // response
-        std::string body = "{\"message\": \"testing\"}";
-        std::string body_count = contentLength(body);
+        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + httpRequest.getBody());
 
-        // make string to combine content-length
-        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
-        const char *htmlResponse = string_response.c_str();
-
-        // logger::log(htmlResponse);
-
-        // while bytes_written is less than byte_count_transfer
-        int byte_count_transfer = 0;
-        ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
-        do {
-            byte_count_transfer++;
-        } while (byte_count_transfer <= bytes_written);
-        // close(client_socket);
     });
 
-    server.addRoute("/other", [](int client_socket) {
+    server.addRoute("/testing", [](Request &httpRequest, Response &httpResponse) {
         // buffer size
         char *buf[540];
 
+        // request
+        httpRequest.setBody("{\"message\": \"testing\"}");
+        std::string request_body_count = contentLength(httpRequest.getBody());
+
         // response
-        std::string body = "<html><body>Page 3!</body></html>";
-        std::string body_count = contentLength(body);
+        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + httpRequest.getBody());
 
-        // make string to combine content-length
-        std::string string_response = "HTTP/1.1 200 OK\r\nContent-Length: " + body_count + "\r\n\r\n" + body;
-        const char *htmlResponse = string_response.c_str();
-
-        // logger::log(htmlResponse);
-
-        // while bytes_written is less than byte_count_transfer
-        int byte_count_transfer = 0;
-        ssize_t bytes_written = write(client_socket, htmlResponse, strlen(htmlResponse));
-        do {
-            byte_count_transfer++;
-        } while (byte_count_transfer <= bytes_written);
-        // close(client_socket);
     });
+
+    server.addRoute("/other", [](Request &httpRequest, Response &httpResponse) {
+        // buffer size
+        char *buf[540];
+
+        // request
+        httpRequest.setBody("<html><body>Page 3!</body></html>");
+        std::string request_body_count = contentLength(httpRequest.getBody());
+
+        // response
+        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + httpRequest.getBody());
+
+    });
+
+    server.print_routes();
+
+
+
 
     server.start();
 

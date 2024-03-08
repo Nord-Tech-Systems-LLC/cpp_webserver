@@ -30,8 +30,8 @@ void HttpServer::start() {
     close(server_socket);
 }
 
-void HttpServer::addRoute(const std::string &path, std::function<void(int)> handler) {
-    routeHandler.addRoute(path, handler);
+void HttpServer::addRoute(const std::string &path, std::function<void(Request&, Response&)> handler) {
+    routes[path] = handler;
 }
 
 // Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
@@ -54,6 +54,12 @@ char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) 
     }
 
     return s;
+}
+
+void HttpServer::print_routes() {
+       for (const auto& pair : routes) {
+        std::cout << pair.first << std::endl;
+    }
 }
 
 bool HttpServer::createSocket() {
@@ -102,14 +108,21 @@ void HttpServer::handleRequest(int client_socket) {
     parseHttpRequest(request);
 
     // if route exists
-    if (routeHandler.checkRoutes(request)) {
-        for (const auto &route : routeHandler.routes) {
+    if (checkRoutes(request)) {
+        for (const auto &route : routes) {
+
             // check if route exists
-            if (routeHandler.parsedInfo["route"] == route.first) {
-                route.second(client_socket);
-                // close(client_socket);
+            if (parsedInfo["route"] == route.first) {
+                route.second(httpRequest, httpResponse);
+                // while bytes_written is less than byte_count_transfer
+                int byte_count_transfer = 0;
+                logger::log("Response Body: " + httpResponse.getBody());
+                ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
+                do {
+                    byte_count_transfer++;
+                } while (byte_count_transfer <= bytes_written);
             }
-            // std::cout << route.first << std::endl;
+
         }
         close(client_socket);
     } else {
@@ -153,9 +166,9 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
 
         if (iss >> method >> route >> httpVersion) {
             // Store the parsed information in the map
-            routeHandler.parsedInfo["method"] = method;
-            routeHandler.parsedInfo["route"] = route;
-            routeHandler.parsedInfo["http_version"] = httpVersion;
+            parsedInfo["method"] = method;
+            parsedInfo["route"] = route;
+            parsedInfo["http_version"] = httpVersion;
 
         } else {
             std::cerr << "Failed to parse the first line of the HTTP request." << std::endl;
@@ -163,7 +176,7 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
     } else {
         std::cerr << "No valid HTTP request found in the buffer." << std::endl;
     }
-    return routeHandler.parsedInfo;
+    return parsedInfo;
 }
 
 void HttpServer::sendHttpGetResponse(int client_socket) {
@@ -176,4 +189,21 @@ void HttpServer::sendCustomResponse(int client_socket, const char *response) {
     // Send a custom response
     write(client_socket, response, strlen(response));
     close(client_socket);
+}
+
+bool HttpServer::checkRoutes(const std::string& route_request) {
+    try {
+        std::string requestRoute = parsedInfo["route"];
+        logger::log("Received route \"" + requestRoute + "\"");
+        for (const auto& route : routes) {
+            // std::cout << "Route first: " << route.first << std::endl;
+            if (route.first == requestRoute) {
+                return true;
+            }
+        }
+
+    } catch (MyCustomException error) {
+        logger::exitWithError(error.what());
+    }
+    return false;
 }
