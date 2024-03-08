@@ -7,7 +7,7 @@
 
 /**
  * TODO:
- * - move write function from addRoute functions below to handleRequest
+ * - write dispatch events GET POST PUT DELETE
  * 
  */
 

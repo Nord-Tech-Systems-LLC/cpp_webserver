@@ -144,7 +144,7 @@ void HttpServer::acceptConnections() {
         }
 
         handleRequest(client_socket);
-        // Start a new thread for each connection
+        // start a new thread for each connection
         // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
 
         // client_thread.detach();  // Detach the thread to allow it to run independently
@@ -152,14 +152,14 @@ void HttpServer::acceptConnections() {
 }
 
 std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::string &requestBuffer) {
-    // Find the position of the first '\r\n'
+    // find the position of the first '\r\n'
     size_t endOfFirstLine = requestBuffer.find("\r\n");
 
     if (endOfFirstLine != std::string::npos) {
-        // Extract the first line
+        // extract the first line
         std::string firstLine = requestBuffer.substr(0, endOfFirstLine);
 
-        // Parse the first line (assuming "METHOD /route HTTP/1.1")
+        // parse the first line (assuming "METHOD /route HTTP/1.1")
         std::istringstream iss(firstLine);
         std::string method, route, httpVersion;
 
@@ -179,7 +179,7 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
 }
 
 void HttpServer::sendHttpGetResponse(int client_socket) {
-    // Custom response for a GET request
+    // custom response for a GET request
     // const char *response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello, World!";
     // write(client_socket, response, strlen(response));
 }
