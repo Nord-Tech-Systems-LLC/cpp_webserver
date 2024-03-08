@@ -100,8 +100,8 @@ class HttpServer {
 
     void addRoute(const std::string &path, std::function<void(Request&, Response&)> handler);
     void sendCustomResponse(int client_socket, const char *response);
-    void print_routes();
-
+    void printRoutes();
+    std::string contentLength(const std::string &input_body);
    private:
     const char *port;
     int server_socket;

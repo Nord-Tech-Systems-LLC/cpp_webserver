@@ -33,7 +33,7 @@ void HttpServer::addRoute(const std::string &path, std::function<void(Request&, 
     routes[path] = handler;
 }
 
-// Helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
+// helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
     switch (sa->sa_family) {
         // IPv4
@@ -55,10 +55,12 @@ char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) 
     return s;
 }
 
-void HttpServer::print_routes() {
+void HttpServer::printRoutes() {
+    logger::log("Possible Routes:");
        for (const auto& pair : routes) {
-        std::cout << pair.first << std::endl;
+        std::cout << pair.first << "\n";
     }
+    std::cout << std::endl;
 }
 
 bool HttpServer::createSocket() {
@@ -95,10 +97,8 @@ bool HttpServer::listenSocket() {
 
 void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
-    // std::cin.clear();
     char buffer[3060];
     read(client_socket, buffer, sizeof(buffer));
-    // logger::log(buffer);
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
     std::string request(buffer);
@@ -115,7 +115,7 @@ void HttpServer::handleRequest(int client_socket) {
                 route.second(httpRequest, httpResponse);
                 // while bytes_written is less than byte_count_transfer
                 int byte_count_transfer = 0;
-                logger::log("Response Body: " + httpResponse.getBody());
+                // logger::log("Response Body: " + httpResponse.getBody());
                 ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
                 do {
                     byte_count_transfer++;
@@ -126,7 +126,20 @@ void HttpServer::handleRequest(int client_socket) {
         close(client_socket);
     } else {
         logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
-        sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+        // construct response
+        std::string customResponse = "There was an error!";
+        std::string request_body_count = contentLength(customResponse);
+
+        // set body of response to send
+        httpResponse.setBody("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + customResponse);
+
+        // while bytes_written is less than byte_count_transfer
+        int byte_count_transfer = 0;
+        ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
+        do {
+            byte_count_transfer++;
+        } while (byte_count_transfer <= bytes_written);
+        // sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         close(client_socket);
     }
 }
@@ -205,4 +218,10 @@ bool HttpServer::checkRoutes(const std::string& route_request) {
         logger::exitWithError(error.what());
     }
     return false;
+}
+
+
+std::string HttpServer::contentLength(const std::string &input_body) {
+    // input html return content length
+    return std::to_string(input_body.size());
 }
