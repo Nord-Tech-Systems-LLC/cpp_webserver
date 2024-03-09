@@ -30,6 +30,8 @@ void HttpServer::start() {
 }
 
 void HttpServer::getMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
+    std::string method = httpRequest.getMethod();
+    logger::log("METHOD: " + method);
     routes[path] = handler;
 }
 void HttpServer::postMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
@@ -112,37 +114,22 @@ void HttpServer::handleRequest(int client_socket) {
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
     std::string request(buffer);
-
-    logger::log("Sent response...");
     parseHttpRequest(request);
-    logger::log("Request: " + request);
-
-    // if route exists
+    
     if (checkRoutes(request)) {
-        for (const auto &route : routes) {
-
-            // check if route exists
-            if (parsedInfo["route"] == route.first) {
-                route.second(httpRequest, httpResponse);
-                // while bytes_written is less than byte_count_transfer
-                int byte_count_transfer = 0;
-                // logger::log("Response Body: " + httpResponse.getBody());
-                ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
-                do {
-                    byte_count_transfer++;
-                } while (byte_count_transfer <= bytes_written);
-            }
-
-        }
+        // if route exists
+        routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
+        handleResponse(client_socket);
         close(client_socket);
     } else {
+        // if route doesn't exist
         logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
         // construct response
         std::string customResponse = "There was an error!";
-        std::string request_body_count = httpResponse.contentLength(customResponse);
+        std::string response_body_count = httpResponse.contentLength(customResponse);
 
         // set body of response to send
-        httpResponse.setBody("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + request_body_count + "\r\n\r\n" + customResponse);
+        httpResponse.setBody("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
 
         // while bytes_written is less than byte_count_transfer
         int byte_count_transfer = 0;
@@ -153,6 +140,17 @@ void HttpServer::handleRequest(int client_socket) {
         // sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
         close(client_socket);
     }
+}
+
+void HttpServer::handleResponse(int client_socket) {
+    // while bytes_written is less than byte_count_transfer
+    int byte_count_transfer = 0;
+    // logger::log("Response Body: " + httpResponse.getBody());
+    ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
+    do {
+        byte_count_transfer++;
+    } while (byte_count_transfer <= bytes_written);
+    logger::log("Sent response...");
 }
 
 void HttpServer::acceptConnections() {
@@ -175,7 +173,7 @@ void HttpServer::acceptConnections() {
     }
 }
 
-std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::string &requestBuffer) {
+void HttpServer::parseHttpRequest(const std::string &requestBuffer) {
     // find the position of the first '\r\n'
     size_t endOfFirstLine = requestBuffer.find("\r\n");
 
@@ -189,9 +187,9 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
 
         if (iss >> method >> route >> httpVersion) {
             // Store the parsed information in the map
-            parsedInfo["method"] = method;
-            parsedInfo["route"] = route;
-            parsedInfo["http_version"] = httpVersion;
+            httpRequest.setMethod(method);
+            httpRequest.setPath(route);
+            // httpRequest.setVersion(httpVersion);
 
         } else {
             std::cerr << "Failed to parse the first line of the HTTP request." << std::endl;
@@ -199,12 +197,11 @@ std::map<std::string, std::string> HttpServer::parseHttpRequest(const std::strin
     } else {
         std::cerr << "No valid HTTP request found in the buffer." << std::endl;
     }
-    return parsedInfo;
 }
 
 bool HttpServer::checkRoutes(const std::string& route_request) {
     try {
-        std::string requestRoute = parsedInfo["route"];
+        std::string requestRoute = httpRequest.getPath();
         logger::log("Received route \"" + requestRoute + "\"");
         for (const auto& route : routes) {
             // std::cout << "Route first: " << route.first << std::endl;

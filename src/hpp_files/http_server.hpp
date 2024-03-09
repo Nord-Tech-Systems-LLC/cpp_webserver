@@ -128,6 +128,7 @@ class HttpServer {
     bool bindSocket();
     bool listenSocket();
     void handleRequest(int client_socket);
+    void handleResponse(int client_socket);
     void acceptConnections();
 
     // request & response
@@ -137,8 +138,7 @@ class HttpServer {
     std::map<std::string, std::function<void(Request&, Response&)>> routes;
 
     // map to store method, route, and http version
-    std::map<std::string, std::string> parsedInfo;
-    std::map<std::string, std::string> parseHttpRequest(const std::string &requestBuffer);
+    void parseHttpRequest(const std::string &requestBuffer);
 };
 
 #endif
