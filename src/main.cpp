@@ -17,7 +17,7 @@ int main() {
     HttpServer server("8080");
 
     // add additional routes
-    server.getMethod("/custom", [](Request &httpRequest, Response &httpResponse) {
+    server.getMethod("/Custom2", [](Request &httpRequest, Response &httpResponse) {
         // response
         std::string response = "<html><body>Hello!</body></html>";
         std::string response_body_count = httpResponse.contentLength(response);

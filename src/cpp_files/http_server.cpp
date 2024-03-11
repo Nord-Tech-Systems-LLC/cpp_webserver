@@ -30,18 +30,49 @@ void HttpServer::start() {
 }
 
 void HttpServer::getMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    std::string method = httpRequest.getMethod();
-    logger::log("METHOD: " + method);
-    routes[path] = handler;
+    // convert route to lowercase
+    std::string lowerCasePath = path;
+    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+    
+
+    // parse query params
+    // parse body of request
+
+    routes[lowerCasePath] = handler;
 }
 void HttpServer::postMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    routes[path] = handler;
+    // convert route to lowercase
+    std::string lowerCasePath = path;
+    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
+    // parse query params
+    // parse body of request
+
+    routes[lowerCasePath] = handler;
 }
 void HttpServer::putMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    routes[path] = handler;
+    // convert route to lowercase
+    std::string lowerCasePath = path;
+    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
+    // parse query params
+    // parse body of request
+
+    routes[lowerCasePath] = handler;
 }
 void HttpServer::deleteMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    routes[path] = handler;
+    // convert route to lowercase
+    std::string lowerCasePath = path;
+    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
+    // parse query params
+    // parse body of request
+
+    routes[lowerCasePath] = handler;
 }
 
 
