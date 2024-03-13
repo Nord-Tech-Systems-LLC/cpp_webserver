@@ -21,11 +21,14 @@ int main() {
 
     // add additional routes
     server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse) {
+
         // response
         std::string response = "<html><body>Hello!</body></html>";
         std::string response_body_count = httpResponse.contentLength(response);
 
-        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+
+        Router router;
+        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 
@@ -34,7 +37,8 @@ int main() {
         std::string response ="{\"message\": \"testing\"}";
         std::string response_body_count = httpRequest.contentLength(response);
 
-        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        Router router;
+        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 
@@ -43,7 +47,8 @@ int main() {
         std::string response ="<html><body>Page 3!</body></html>";
         std::string response_body_count = httpRequest.contentLength(response);
 
-        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        Router router;
+        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 

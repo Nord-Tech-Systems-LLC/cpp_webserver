@@ -8,6 +8,28 @@
 #include <string>
 #include <unordered_map>
 
+
+class Router {
+    Response response;
+    public:
+        // response router
+        void getMethod(std::string responseContent) {
+            response.setBody(responseContent);
+        }
+
+        void putMethod(std::string responseContent) {
+            response.setBody(responseContent);
+        }
+
+        void postMethod(std::string responseContent) {
+            response.setBody(responseContent);
+        }
+
+        void deleteMethod(std::string responseContent) {
+            response.setBody(responseContent);
+        }
+};
+
 class Request {
     private:
         std::string method;
@@ -99,7 +121,6 @@ class Response {
         std::string statusMessage;
         std::map<std::string, std::string> headers;
         std::string body;
-
     public:
         // getters 
         int getStatusCode() const {
@@ -133,23 +154,6 @@ class Response {
 
         void setBody(std::string newBody) {
             body = newBody;
-        }
-
-        // response router
-        void getMethod(std::string responseContent) {
-            body = responseContent;
-        }
-
-        void putMethod(std::string responseContent) {
-            body = responseContent;
-        }
-
-        void postMethod(std::string responseContent) {
-            body = responseContent;
-        }
-
-        void deleteMethod(std::string responseContent) {
-            body = responseContent;
         }
 
         // helper methods
