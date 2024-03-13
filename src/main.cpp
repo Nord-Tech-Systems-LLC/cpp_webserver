@@ -10,6 +10,9 @@
  * - write dispatch events GET POST PUT DELETE
  * - move parseHttpRequest to align with GET POST PUT DELETE. 
  * Should be able to print method on request not server startup
+ * - parse query params
+ * - parse body of request
+ * - reset params at the beginning of each request
  * 
  */
 
@@ -17,30 +20,30 @@ int main() {
     HttpServer server("8080");
 
     // add additional routes
-    server.getMethod("/Custom2", [](Request &httpRequest, Response &httpResponse) {
+    server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse) {
         // response
         std::string response = "<html><body>Hello!</body></html>";
         std::string response_body_count = httpResponse.contentLength(response);
 
-        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 
-    server.getMethod("/testing", [](Request &httpRequest, Response &httpResponse) {
+    server.addRoute("/testing", [](Request &httpRequest, Response &httpResponse) {
         // response
         std::string response ="{\"message\": \"testing\"}";
         std::string response_body_count = httpRequest.contentLength(response);
 
-        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 
-    server.getMethod("/other", [](Request &httpRequest, Response &httpResponse) {
+    server.addRoute("/other", [](Request &httpRequest, Response &httpResponse) {
         // response
         std::string response ="<html><body>Page 3!</body></html>";
         std::string response_body_count = httpRequest.contentLength(response);
 
-        httpResponse.setBody("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        httpResponse.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
 
     });
 

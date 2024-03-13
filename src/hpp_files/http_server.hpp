@@ -6,6 +6,7 @@
 #include <map>
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 class Request {
     private:
@@ -13,6 +14,8 @@ class Request {
         std::string path;
         std::map<std::string, std::string> headers;
         std::string body;
+        std::unordered_map<std::string, std::string> queryParams;
+
     public:
         // getters
         std::string getMethod() const {
@@ -31,6 +34,10 @@ class Request {
             return body;
         }
 
+        std::unordered_map<std::string, std::string> getParams() const {
+            return queryParams;
+        }
+
         // setters
         void setMethod(std::string newMethod) {
             method = newMethod;
@@ -46,6 +53,36 @@ class Request {
 
         void setBody(std::string newBody) {
             body = newBody;
+        }
+
+        void setParams(std::string queryString) {
+            // find start of query in queryString
+            size_t queryPos = queryString.find('?');
+
+            if (queryPos != std::string::npos) {
+                // find 1 position after '?' character
+                queryString = queryString.substr(queryPos + 1);
+
+                size_t pos = 0;
+                while (pos < queryString.length()) {
+                    size_t delimPos = queryString.find('&', pos);
+                    std::string param;
+                    if (delimPos != std::string::npos) {
+                        param = queryString.substr(pos, delimPos - pos);
+                        pos = delimPos + 1;
+                    } else {
+                        param = queryString.substr(pos);
+                        pos = queryString.length();
+                    }
+                    size_t eqPos = param.find('=');
+                    if (eqPos != std::string::npos) {
+                        std::string key = param.substr(0, eqPos);
+                        std::string value = param.substr(eqPos + 1);
+                        // URL decoding might be required here depending on your use case
+                        queryParams[key] = value;
+                    }
+                }
+            }
         }
 
         // helper methods
@@ -98,6 +135,23 @@ class Response {
             body = newBody;
         }
 
+        // response router
+        void getMethod(std::string responseContent) {
+            body = responseContent;
+        }
+
+        void putMethod(std::string responseContent) {
+            body = responseContent;
+        }
+
+        void postMethod(std::string responseContent) {
+            body = responseContent;
+        }
+
+        void deleteMethod(std::string responseContent) {
+            body = responseContent;
+        }
+
         // helper methods
         std::string contentLength(const std::string &input_body) {
             // input html return content length
@@ -113,10 +167,7 @@ class HttpServer {
     void printRoutes();
 
     // dispatch events
-    void getMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
-    void postMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
-    void putMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
-    void deleteMethod(const std::string &path, std::function<void(Request&, Response&)> handler);
+    void addRoute(const std::string &path, std::function<void(Request&, Response&)> handler);
 
    private:
     const char *port;
@@ -134,7 +185,7 @@ class HttpServer {
     // request & response
     Request httpRequest;
     Response httpResponse;
-    bool checkRoutes(const std::string& route_request);
+    bool checkRoutes();
     std::map<std::string, std::function<void(Request&, Response&)>> routes;
 
     // map to store method, route, and http version

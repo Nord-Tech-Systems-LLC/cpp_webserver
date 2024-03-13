@@ -29,52 +29,14 @@ void HttpServer::start() {
     close(server_socket);
 }
 
-void HttpServer::getMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
+void HttpServer::addRoute(const std::string &path, std::function<void(Request&, Response&)> handler) {
     // convert route to lowercase
     std::string lowerCasePath = path;
     std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
     [](unsigned char c){ return std::tolower(c); });
     
-
-    // parse query params
-    // parse body of request
-
     routes[lowerCasePath] = handler;
 }
-void HttpServer::postMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    // convert route to lowercase
-    std::string lowerCasePath = path;
-    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
-    [](unsigned char c){ return std::tolower(c); });
-
-    // parse query params
-    // parse body of request
-
-    routes[lowerCasePath] = handler;
-}
-void HttpServer::putMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    // convert route to lowercase
-    std::string lowerCasePath = path;
-    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
-    [](unsigned char c){ return std::tolower(c); });
-
-    // parse query params
-    // parse body of request
-
-    routes[lowerCasePath] = handler;
-}
-void HttpServer::deleteMethod(const std::string &path, std::function<void(Request&, Response&)> handler) {
-    // convert route to lowercase
-    std::string lowerCasePath = path;
-    std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
-    [](unsigned char c){ return std::tolower(c); });
-
-    // parse query params
-    // parse body of request
-
-    routes[lowerCasePath] = handler;
-}
-
 
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
@@ -138,6 +100,15 @@ bool HttpServer::listenSocket() {
     return true;
 }
 
+std::string extractMainRoute(const std::string& url) {
+    size_t queryPos = url.find('?');
+    if (queryPos != std::string::npos) {
+        return url.substr(0, queryPos);
+    } else {
+        return url;
+    }
+}
+
 void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
     char buffer[3060];
@@ -146,8 +117,18 @@ void HttpServer::handleRequest(int client_socket) {
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
     std::string request(buffer);
     parseHttpRequest(request);
-    
-    if (checkRoutes(request)) {
+    httpRequest.setParams(""); // resetting params after each request
+    httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
+
+    // print params
+    for (const auto& param : httpRequest.getParams()) {
+        logger::log("Query Params: " + param.first + " : " + param.second);
+    }
+
+    // setting main route for lookup
+    httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
+
+    if (checkRoutes()) {
         // if route exists
         routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
         handleResponse(client_socket);
@@ -160,7 +141,7 @@ void HttpServer::handleRequest(int client_socket) {
         std::string response_body_count = httpResponse.contentLength(customResponse);
 
         // set body of response to send
-        httpResponse.setBody("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
+        httpResponse.getMethod("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
 
         // while bytes_written is less than byte_count_transfer
         int byte_count_transfer = 0;
@@ -230,7 +211,7 @@ void HttpServer::parseHttpRequest(const std::string &requestBuffer) {
     }
 }
 
-bool HttpServer::checkRoutes(const std::string& route_request) {
+bool HttpServer::checkRoutes() {
     try {
         std::string requestRoute = httpRequest.getPath();
         logger::log("Received route \"" + requestRoute + "\"");
