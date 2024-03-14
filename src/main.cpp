@@ -8,11 +8,10 @@
 /**
  * TODO:
  * - write dispatch events GET POST PUT DELETE
- * - move parseHttpRequest to align with GET POST PUT DELETE. 
- * Should be able to print method on request not server startup
  * - parse query params
  * - parse body of request
- * - reset params at the beginning of each request
+ * - set headers on back end
+ * 
  * 
  */
 
@@ -21,34 +20,42 @@ int main() {
 
     // add additional routes
     server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse) {
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
 
         // response
         std::string response = "<html><body>Hello!</body></html>";
-        std::string response_body_count = httpResponse.contentLength(response);
-
-
-        Router router;
-        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
-
+        httpResponse.GET(response);
     });
 
     server.addRoute("/testing", [](Request &httpRequest, Response &httpResponse) {
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "application/json"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
+
         // response
         std::string response ="{\"message\": \"testing\"}";
-        std::string response_body_count = httpRequest.contentLength(response);
-
-        Router router;
-        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
-
+        httpResponse.GET(response);
     });
 
     server.addRoute("/other", [](Request &httpRequest, Response &httpResponse) {
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
+
         // response
         std::string response ="<html><body>Page 3!</body></html>";
-        std::string response_body_count = httpRequest.contentLength(response);
-
-        Router router;
-        router.getMethod("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + response);
+        httpResponse.GET(response);
 
     });
 

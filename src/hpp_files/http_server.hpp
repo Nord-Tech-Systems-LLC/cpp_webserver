@@ -7,28 +7,8 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
-
-
-class Router {
-    Response response;
-    public:
-        // response router
-        void getMethod(std::string responseContent) {
-            response.setBody(responseContent);
-        }
-
-        void putMethod(std::string responseContent) {
-            response.setBody(responseContent);
-        }
-
-        void postMethod(std::string responseContent) {
-            response.setBody(responseContent);
-        }
-
-        void deleteMethod(std::string responseContent) {
-            response.setBody(responseContent);
-        }
-};
+#include <sstream>
+#include <iostream>
 
 class Request {
     private:
@@ -121,7 +101,11 @@ class Response {
         std::string statusMessage;
         std::map<std::string, std::string> headers;
         std::string body;
+        std::string requestMethod;
+
     public:
+
+        
         // getters 
         int getStatusCode() const {
             return statusCode;
@@ -137,6 +121,10 @@ class Response {
 
         std::string getBody() const {
             return body;
+        }
+
+        std::string getRequestMethod() const {
+            return requestMethod;
         }
 
         // setters
@@ -156,11 +144,61 @@ class Response {
             body = newBody;
         }
 
+        void setRequestMethod(std::string newRequestMethod) {
+            requestMethod = newRequestMethod;
+        }
+
+        // response router
+        void GET(std::string responseContent) {
+            if (requestMethod != "GET") {
+                std::string response = buildResponse("400 Bad Request", "Improper request method.");
+                body = response;
+            } else {
+                std::string response = buildResponse("200 OK", responseContent);
+                body = response;
+            }
+        }
+
+        void PUT(std::string responseContent) {
+            std::string responseLength = contentLength(responseContent);
+            std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
+            body = builtRequest;
+        }
+
+        void POST(std::string responseContent) {
+            std::string responseLength = contentLength(responseContent);
+            std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
+            body = builtRequest;
+        }
+
+        void DELETE(std::string responseContent) {
+            std::string responseLength = contentLength(responseContent);
+            std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
+            body = builtRequest;
+        }
+
         // helper methods
         std::string contentLength(const std::string &input_body) {
             // input html return content length
             return std::to_string(input_body.size());
         };
+
+        std::string buildResponse(const std::string &responseStatus, const std::string &responseContent) {
+            std::string responseLength = contentLength(responseContent);
+            headers["Content-Length"] = responseLength;
+            std::ostringstream response;
+            
+            // append HTTP headers
+            response << "HTTP/1.1 " + responseStatus + "\r\n";
+            for (const auto& header : headers) {
+                response << header.first << ": " << header.second << "\r\n";
+            }
+            
+            // add a blank line to separate headers from body
+            response << "\r\n";
+            response << responseContent;
+            return response.str();
+        }
 };
 
 class HttpServer {

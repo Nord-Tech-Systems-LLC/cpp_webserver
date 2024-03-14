@@ -119,11 +119,8 @@ void HttpServer::handleRequest(int client_socket) {
     parseHttpRequest(request);
     httpRequest.setParams(""); // resetting params after each request
     httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
+    httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
 
-    // print params
-    for (const auto& param : httpRequest.getParams()) {
-        logger::log("Query Params: " + param.first + " : " + param.second);
-    }
 
     // setting main route for lookup
     httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
@@ -131,6 +128,11 @@ void HttpServer::handleRequest(int client_socket) {
     if (checkRoutes()) {
         // if route exists
         routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
+        // print params
+        logger::log("Headers:\n");
+        for (const auto& param : httpResponse.getHeaders()) {
+            std::cout << param.first + ": " + param.second << "\n";
+        }
         handleResponse(client_socket);
         close(client_socket);
     } else {
@@ -141,7 +143,7 @@ void HttpServer::handleRequest(int client_socket) {
         std::string response_body_count = httpResponse.contentLength(customResponse);
 
         // set body of response to send
-        httpResponse.getMethod("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
+        httpResponse.GET("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
 
         // while bytes_written is less than byte_count_transfer
         int byte_count_transfer = 0;
