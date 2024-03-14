@@ -1,5 +1,7 @@
 
 
+#include "../hpp_files/request.hpp"
+#include "../hpp_files/response.hpp"
 #include "../hpp_files/http_server.hpp"
 #include "../hpp_files/server_logging.hpp"
 
@@ -113,14 +115,17 @@ void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
     char buffer[3060];
     read(client_socket, buffer, sizeof(buffer));
+    std::string request(buffer);
+
+    // print request
+    logger::log("Received Request: \n");
+    std::cout << request;
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
-    std::string request(buffer);
     parseHttpRequest(request);
     httpRequest.setParams(""); // resetting params after each request
     httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
     httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
-
 
     // setting main route for lookup
     httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
@@ -128,35 +133,35 @@ void HttpServer::handleRequest(int client_socket) {
     if (checkRoutes()) {
         // if route exists
         routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
-        // print params
-        logger::log("Headers:\n");
-        for (const auto& param : httpResponse.getHeaders()) {
-            std::cout << param.first + ": " + param.second << "\n";
-        }
         handleResponse(client_socket);
         close(client_socket);
     } else {
         // if route doesn't exist
-        logger::exitWithError("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
-        // construct response
-        std::string customResponse = "There was an error!";
-        std::string response_body_count = httpResponse.contentLength(customResponse);
+        logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
 
-        // set body of response to send
-        httpResponse.GET("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length:" + response_body_count + "\r\n\r\n" + customResponse);
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
+        // error response
+        std::string errorResponse = "There was an error!";
+        httpResponse.GET(errorResponse);
 
-        // while bytes_written is less than byte_count_transfer
-        int byte_count_transfer = 0;
-        ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
-        do {
-            byte_count_transfer++;
-        } while (byte_count_transfer <= bytes_written);
-        // sendCustomResponse(client_socket, "HTTP/1.1 400 Bad Request\r\nContent-Length: 90\r\n\r\nThere was an error!");
+        handleResponse(client_socket);
         close(client_socket);
     }
 }
 
 void HttpServer::handleResponse(int client_socket) {
+    // print response headers
+    logger::log("Response Headers:\n");
+    for (const auto& header : httpResponse.getHeaders()) {
+        std::cout << header.first + ": " + header.second << "\n";
+    }
+    std::cout << std::endl;
+
     // while bytes_written is less than byte_count_transfer
     int byte_count_transfer = 0;
     // logger::log("Response Body: " + httpResponse.getBody());
@@ -173,7 +178,7 @@ void HttpServer::acceptConnections() {
 
     while (true) {
         int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
-        logger::log("Received request from: " + std::to_string(client_socket));
+        // logger::log("Received request from: " + std::to_string(client_socket));
         if (client_socket == -1) {
             perror("Accept failed");
             break;
@@ -225,7 +230,7 @@ bool HttpServer::checkRoutes() {
         }
 
     } catch (MyCustomException error) {
-        logger::exitWithError(error.what());
+        logger::error(error.what());
     }
     return false;
 }

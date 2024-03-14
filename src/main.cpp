@@ -2,8 +2,11 @@
 
 #include <string>
 
+#include "hpp_files/request.hpp"
+#include "hpp_files/response.hpp"
 #include "hpp_files/http_server.hpp"
 #include "hpp_files/server_logging.hpp"
+
 
 /**
  * TODO:
