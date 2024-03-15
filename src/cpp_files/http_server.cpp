@@ -140,6 +140,7 @@ void HttpServer::handleRequest(int client_socket) {
     if (checkRoutes()) {
         // if route exists
         routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
+        logger::log("client_socket " + std::to_string(client_socket));
         handleResponse(client_socket);
         close(client_socket);
     } else {
@@ -191,11 +192,10 @@ void HttpServer::acceptConnections() {
             break;
         }
 
-        handleRequest(client_socket);
+        // handleRequest(client_socket);
         // start a new thread for each connection
-        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-
-        // client_thread.detach();  // Detach the thread to allow it to run independently
+        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        client_thread.detach();  // detach the thread to allow it to run independently
     }
 }
 
