@@ -86,6 +86,13 @@ bool HttpServer::bindSocket() {
     server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(std::stoi(port));
 
+    // set SO_REUSEADDR option
+    int opt = 1;
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("Setsockopt failed");
+        return false;
+    }
+
     if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1) {
         perror("Bind failed");
         return false;
