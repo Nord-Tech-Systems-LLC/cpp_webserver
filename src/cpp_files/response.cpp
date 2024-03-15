@@ -60,21 +60,36 @@ void Response::GET(std::string responseContent) {
 }
 
 void Response::PUT(std::string responseContent) {
-    std::string responseLength = contentLength(responseContent);
-    std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
-    body = builtRequest;
+    if (requestMethod != "PUT") {
+        logger::error("Requested: " + requestMethod + " / Expected: 'PUT'" + " -- Improper request method");
+        std::string response = buildResponse("400 Bad Request", "Improper request method.");
+        body = response;
+    } else {
+        std::string response = buildResponse("200 OK", responseContent);
+        body = response;
+    }
 }
 
 void Response::POST(std::string responseContent) {
-    std::string responseLength = contentLength(responseContent);
-    std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
-    body = builtRequest;
+    if (requestMethod != "POST") {
+        logger::error("Requested: " + requestMethod + " / Expected: 'POST'" + " -- Improper request method");
+        std::string response = buildResponse("400 Bad Request", "Improper request method.");
+        body = response;
+    } else {
+        std::string response = buildResponse("200 OK", responseContent);
+        body = response;
+    }
 }
 
 void Response::DELETE(std::string responseContent) {
-    std::string responseLength = contentLength(responseContent);
-    std::string builtRequest = "HTTP/1.1 200 OK\r\nContent-Length:" + responseLength + "\r\n\r\n" + responseContent;
-    body = builtRequest;
+    if (requestMethod != "DELETE") {
+        logger::error("Requested: " + requestMethod + " / Expected: 'DELETE'" + " -- Improper request method");
+        std::string response = buildResponse("400 Bad Request", "Improper request method.");
+        body = response;
+    } else {
+        std::string response = buildResponse("200 OK", responseContent);
+        body = response;
+    }
 }
 
 // helper methods

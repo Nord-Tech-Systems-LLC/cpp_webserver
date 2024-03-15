@@ -28,7 +28,7 @@ void HttpServer::start() {
         std::cout << "Server listening on port " << port << std::endl;
         acceptConnections();
     }
-    close(server_socket);
+    // close(server_socket);
 }
 
 void HttpServer::addRoute(const std::string &path, std::function<void(Request&, Response&)> handler) {
@@ -233,4 +233,8 @@ bool HttpServer::checkRoutes() {
         logger::error(error.what());
     }
     return false;
+}
+
+HttpServer::~HttpServer() {
+    close(server_socket);
 }

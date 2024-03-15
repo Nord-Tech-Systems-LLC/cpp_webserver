@@ -7,7 +7,6 @@
 #include "hpp_files/http_server.hpp"
 #include "hpp_files/server_logging.hpp"
 
-
 /**
  * TODO:
  * - write dispatch events GET POST PUT DELETE
@@ -58,13 +57,11 @@ int main() {
 
         // response
         std::string response ="<html><body>Page 3!</body></html>";
-        httpResponse.GET(response);
+        httpResponse.PUT(response);
 
     });
 
     server.printRoutes();
-
     server.start();
-
     return 0;
 }

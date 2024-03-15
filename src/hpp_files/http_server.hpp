@@ -14,7 +14,7 @@
 class HttpServer {
    public:
     HttpServer(const char *port);
-    // ~HttpServer();
+    ~HttpServer();
     void start();
     void printRoutes();
 
