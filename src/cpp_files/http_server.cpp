@@ -18,7 +18,8 @@
 #include <thread>
 #include <sstream>
 
-HttpServer::HttpServer(const char *port) : port(port), server_socket(0) {
+HttpServer::HttpServer(const char *ip_address, const char *port) : 
+                       ip_address(ip_address), port(port), server_socket(0) {
     // routeHandler.addRoute("/", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
     // routeHandler.addRoute("/hello", std::bind(&HttpServer::sendHttpGetResponse, this, std::placeholders::_1));
 }
@@ -83,7 +84,8 @@ bool HttpServer::bindSocket() {
 
     memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_addr.s_addr = inet_addr(ip_address);
+    // server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(std::stoi(port));
 
     // set SO_REUSEADDR option
@@ -121,11 +123,13 @@ std::string extractMainRoute(const std::string& url) {
 void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
     char buffer[3060];
-    read(client_socket, buffer, sizeof(buffer));
+    memset(buffer, 0, 3060); // resetting buffer between requests
+    ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
     std::string request(buffer);
 
     // print request
-    logger::log("Received Request: \n");
+    logger::section("NEW REQUEST");
+    logger::log("Received Request:\n");
     std::cout << request;
 
     // parse the request to determine the type (e.g., GET, POST) and extract relevant information
@@ -140,7 +144,6 @@ void HttpServer::handleRequest(int client_socket) {
     if (checkRoutes()) {
         // if route exists
         routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
-        logger::log("client_socket " + std::to_string(client_socket));
         handleResponse(client_socket);
         close(client_socket);
     } else {
@@ -177,7 +180,7 @@ void HttpServer::handleResponse(int client_socket) {
     do {
         byte_count_transfer++;
     } while (byte_count_transfer <= bytes_written);
-    logger::log("Sent response...");
+    logger::log("Sent response to client socket " + std::to_string(client_socket));
 }
 
 void HttpServer::acceptConnections() {

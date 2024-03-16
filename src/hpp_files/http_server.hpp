@@ -13,7 +13,7 @@
 
 class HttpServer {
    public:
-    HttpServer(const char *port);
+    HttpServer(const char *ip_address, const char *port);
     ~HttpServer();
     void start();
     void printRoutes();
@@ -23,6 +23,7 @@ class HttpServer {
 
    private:
     const char *port;
+    const char *ip_address;
     int server_socket;
 
     // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6

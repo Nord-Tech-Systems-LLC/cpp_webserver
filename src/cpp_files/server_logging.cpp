@@ -33,6 +33,9 @@ void log(const std::string& message, const char* functionName = __builtin_FUNCTI
 
 void error(const std::string& errorMessage, const char* functionName = __builtin_FUNCTION()) {
     std::cout << red << "[ERROR]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName << "]: " << errorMessage << "\n";
-    // exit(1);
+}
+
+void section(const std::string& message, const char* functionName = __builtin_FUNCTION()) {
+    std::cout << blue << "[~~~~~~~~~~~~~~~~~~~~" << message << "~~~~~~~~~~~~~~~~~~~~]" << reset << "\n";
 }
 }  // namespace logger

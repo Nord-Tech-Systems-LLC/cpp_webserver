@@ -18,7 +18,7 @@
  */
 
 int main() {
-    HttpServer server("8080");
+    HttpServer server("127.0.0.1", "8080");
 
     // add additional routes
     server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse) {
