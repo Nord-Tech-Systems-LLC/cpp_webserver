@@ -41,7 +41,14 @@ void Request::setBody(std::string newBody) {
     body = newBody;
 }
 
+std::string Request::returnParamValue(std::string paramKey) {
+    return getParams()[paramKey];
+}
+
 void Request::setParams(std::string queryString) {
+    // reset map after each request
+    queryParams.clear();
+    
     // find start of query in queryString
     size_t queryPos = queryString.find('?');
 

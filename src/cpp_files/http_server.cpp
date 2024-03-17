@@ -138,6 +138,13 @@ void HttpServer::handleRequest(int client_socket) {
     httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
     httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
 
+    // print params
+    std::cout << "Params:\n";
+    for (const auto& params : httpRequest.getParams()) {
+        std::cout << params.first << " : " << params.second << std::endl;
+    };
+
+
     // setting main route for lookup
     httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
 
@@ -156,10 +163,11 @@ void HttpServer::handleRequest(int client_socket) {
             {"Connection", "keep-alive"},
             {"Accept-Encoding", "gzip, deflate, br",}
         });
-        // error response
-        std::string errorResponse = "There was an error!";
-        httpResponse.GET(errorResponse);
 
+        // error response
+        std::string errorResponse = "Route does not exist!";
+        std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
+        httpResponse.setBody(response);
         handleResponse(client_socket);
         close(client_socket);
     }

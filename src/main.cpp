@@ -13,6 +13,8 @@
  * - parse query params
  * - parse body of request
  * - set headers on back end
+ * - build concept of middleware
+ * - build concept of inputting options for server
  * 
  * 
  */
@@ -42,8 +44,11 @@ int main() {
             {"Accept-Encoding", "gzip, deflate, br",}
         });
 
+
+        std::string paramValue = httpRequest.returnParamValue("testing2");
+        
         // response
-        std::string response ="{\"message\": \"testing\"}";
+        std::string response ="{\"message\": \"" + paramValue + "\"}";
         httpResponse.GET(response);
     });
 

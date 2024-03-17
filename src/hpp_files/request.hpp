@@ -22,6 +22,7 @@ class Request {
         std::map<std::string, std::string> getHeaders() const;
         std::string getBody() const;
         std::unordered_map<std::string, std::string> getParams() const;
+        std::string returnParamValue(std::string paramKey);
 
         // setters
         void setMethod(std::string newMethod);
