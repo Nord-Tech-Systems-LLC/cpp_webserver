@@ -15,7 +15,8 @@
  * - set headers on back end
  * - build concept of middleware
  * - build concept of inputting options for server
- * 
+ * - url encoding from request to response - https://developers.google.com/maps/url-encoding
+ * - pointer optimization
  * 
  */
 

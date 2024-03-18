@@ -229,10 +229,10 @@ void HttpServer::parseHttpRequest(const std::string &requestBuffer) {
             // httpRequest.setVersion(httpVersion);
 
         } else {
-            std::cerr << "Failed to parse the first line of the HTTP request." << std::endl;
+            logger::error("Failed to parse the first line of the HTTP request.");
         }
     } else {
-        std::cerr << "No valid HTTP request found in the buffer." << std::endl;
+        logger::error("No valid HTTP request found in the buffer.");
     }
 }
 
