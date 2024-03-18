@@ -34,10 +34,10 @@ class Response {
         void setRequestMethod(std::string newRequestMethod);
 
         // response router
-        void GET(std::string responseContent);
-        void PUT(std::string responseContent);
-        void POST(std::string responseContent);
-        void DELETE(std::string responseContent);
+        std::string GET(std::string responseContent);
+        std::string PUT(std::string responseContent);
+        std::string POST(std::string responseContent);
+        std::string DELETE(std::string responseContent);
 
         // helper methods
         std::string contentLength(const std::string &input_body);

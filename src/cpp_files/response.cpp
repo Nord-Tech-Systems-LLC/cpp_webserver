@@ -48,47 +48,55 @@ void Response::setRequestMethod(std::string newRequestMethod) {
 }
 
 // response router
-void Response::GET(std::string responseContent) {
+std::string Response::GET(std::string responseContent) {
     if (requestMethod != "GET") {
         logger::error("Requested: " + requestMethod + " / Expected: 'GET'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
+        return body;
     } else {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
+        return body;
     }
 }
 
-void Response::PUT(std::string responseContent) {
+std::string Response::PUT(std::string responseContent) {
     if (requestMethod != "PUT") {
         logger::error("Requested: " + requestMethod + " / Expected: 'PUT'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
+        return body;
     } else {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
+        return body;
     }
 }
 
-void Response::POST(std::string responseContent) {
+std::string Response::POST(std::string responseContent) {
     if (requestMethod != "POST") {
         logger::error("Requested: " + requestMethod + " / Expected: 'POST'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
+        return body;
     } else {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
+        return body;
     }
 }
 
-void Response::DELETE(std::string responseContent) {
+std::string Response::DELETE(std::string responseContent) {
     if (requestMethod != "DELETE") {
         logger::error("Requested: " + requestMethod + " / Expected: 'DELETE'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
+        return body;
     } else {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
+        return body;
     }
 }
 
