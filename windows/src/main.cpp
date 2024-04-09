@@ -11,6 +11,22 @@
 int main()
 {
     HttpServer server("127.0.0.1", "8080");
+    
+    // add additional routes
+    server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse) {
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
+
+        // response
+        std::string response = "<html><body>Hello!</body></html>";
+        httpResponse.GET(response);
+    });
+
+    server.printRoutes();
     server.start();
 
 

@@ -42,7 +42,7 @@ private:
      Request httpRequest;
      Response httpResponse;
     bool checkRoutes();
-    // std::map<std::string, std::function<void(Request&, Response&)>> routes;
+    std::map<std::string, std::function<void(Request&, Response&)>> routes;
 
     // map to store method, route, and http version
     void parseHttpRequest(const std::string& requestBuffer);

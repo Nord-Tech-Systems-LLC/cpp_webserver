@@ -1,16 +1,11 @@
 #include "../hpp_files/request.hpp"
 #include "../hpp_files/response.hpp"
 #include "../hpp_files/http_server.hpp"
-// #include "../hpp_files/server_logging.hpp"
+#include "../hpp_files/server_logging.hpp"
 
 
-
-//#include <arpa/inet.h>
-//#include <netinet/in.h>
-//#include <sys/socket.h>
 #include <WinSock2.h>
 #include <ws2tcpip.h>
-//#include <unistd.h>
 
 #include <cstring>
 #include <functional>
@@ -19,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <sstream>
+#include <algorithm>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -33,8 +29,7 @@ void HttpServer::start() {
     WSADATA wsa;
 
     iResult = WSAStartup(MAKEWORD(2, 0), &wsa);
-    if (iResult != 0)
-    {
+    if (iResult != 0) {
         printf("WSAStartup failed: %d\n", iResult);
     }
 
@@ -51,32 +46,32 @@ void HttpServer::start() {
 }
 
 void HttpServer::addRoute(const std::string& path, std::function<void(Request&, Response&)> handler) {
-    //// convert route to lowercase
-    //std::string lowerCasePath = path;
-    //std::transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
-    //    [](unsigned char c) { return std::tolower(c); });
+    // convert route to lowercase
+    std::string lowerCasePath = path;
+    transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
+       [](unsigned char c) { return std::tolower(c); });
 
-    //routes[lowerCasePath] = handler;
+    routes[lowerCasePath] = handler;
 }
 
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char* HttpServer::get_ip_str(const struct sockaddr* sa, char* s, size_t maxlen) {
-    //switch (sa->sa_family) {
-    //    // IPv4
-    //case AF_INET:
-    //    inet_ntop(AF_INET, &(((struct sockaddr_in*)sa)->sin_addr), s, maxlen);
-    //    break;
+    switch (sa->sa_family) {
+       // IPv4
+    case AF_INET:
+       inet_ntop(AF_INET, &(((struct sockaddr_in*)sa)->sin_addr), s, maxlen);
+       break;
 
-    //    // IPv6
-    //case AF_INET6:
-    //    inet_ntop(AF_INET6, &(((struct sockaddr_in6*)sa)->sin6_addr), s, maxlen);
-    //    break;
+       // IPv6
+    case AF_INET6:
+       inet_ntop(AF_INET6, &(((struct sockaddr_in6*)sa)->sin6_addr), s, maxlen);
+       break;
 
-    //    // Error
-    //default:
-    //    strncpy(s, "Unknown AF", maxlen);
-    //    return NULL;
-    //}
+       // Error
+    default:
+       strncpy(s, "Unknown AF", maxlen);
+       return NULL;
+    }
 
     return s;
 }
@@ -101,14 +96,10 @@ bool HttpServer::bindSocket() {
     struct sockaddr_in server_address;
 
     memset(&server_address, 0, sizeof(server_address));
-    struct addrinfo hints, * addrs;
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    iResult = getaddrinfo(ip_address, port, &hints, &addrs);
-    // std::cout << "iResult: "  << iResult << std::endl;
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = inet_addr(ip_address);
+    // server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(std::stoi(port));
 
     // set SO_REUSEADDR option
     const char opt = 1;
@@ -144,57 +135,57 @@ std::string extractMainRoute(const std::string& url) {
 }
 
 void HttpServer::handleRequest(int client_socket) {
-    //std::cout.flush();
-    //char buffer[3060];
-    //memset(buffer, 0, 3060); // resetting buffer between requests
-    //ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    //std::string request(buffer);
+    std::cout.flush();
+    char buffer[3060];
+    memset(buffer, 0, 3060); // resetting buffer between requests
+    SSIZE_T bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+    std::string request(buffer);
 
-    //// print request
-    //logger::section("NEW REQUEST");
-    //logger::log("Received Request:\n");
-    //std::cout << request;
+    // print request
+    logger::section("NEW REQUEST");
+    logger::log("Received Request:\n");
+    std::cout << request;
 
-    //// parse the request to determine the type (e.g., GET, POST) and extract relevant information
-    //parseHttpRequest(request);
-    //httpRequest.setParams(""); // resetting params after each request
-    //httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
-    //httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
+    // parse the request to determine the type (e.g., GET, POST) and extract relevant information
+    parseHttpRequest(request);
+    httpRequest.setParams(""); // resetting params after each request
+    httpRequest.setParams(httpRequest.getPath()); // parse url params and set them for the request
+    httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
 
-    //// print params
-    //std::cout << "Params:\n";
-    //for (const auto& params : httpRequest.getParams()) {
-    //    std::cout << params.first << " : " << params.second << std::endl;
-    //};
+    // print params
+    std::cout << "Params:\n";
+    for (const auto& params : httpRequest.getParams()) {
+       std::cout << params.first << " : " << params.second << std::endl;
+    };
 
 
-    //// setting main route for lookup
-    //httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
+    // setting main route for lookup
+    httpRequest.setPath(extractMainRoute(httpRequest.getPath()));
 
-    //if (checkRoutes()) {
-    //    // if route exists
-    //    routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
-    //    handleResponse(client_socket);
-    //    close(client_socket);
-    //}
-    //else {
-    //    // if route doesn't exist
-    //    logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
+    if (checkRoutes()) {
+       // if route exists
+       routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
+       handleResponse(client_socket);
+       closesocket(client_socket);
+    }
+    else {
+       // if route doesn't exist
+       logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
 
-    //    // set headers
-    //    httpResponse.setHeaders({
-    //        {"Content-Type", "text/html"},
-    //        {"Connection", "keep-alive"},
-    //        {"Accept-Encoding", "gzip, deflate, br",}
-    //        });
+       // set headers
+       httpResponse.setHeaders({
+           {"Content-Type", "text/html"},
+           {"Connection", "keep-alive"},
+           {"Accept-Encoding", "gzip, deflate, br",}
+           });
 
-    //    // error response
-    //    std::string errorResponse = "Route does not exist!";
-    //    std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
-    //    httpResponse.setBody(response);
-    //    handleResponse(client_socket);
-    //    close(client_socket);
-    //}
+       // error response
+       std::string errorResponse = "Route does not exist!";
+       std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
+       httpResponse.setBody(response);
+       handleResponse(client_socket);
+       closesocket(client_socket);
+    }
 }
 
 void HttpServer::handleResponse(int client_socket) {
@@ -221,7 +212,7 @@ void HttpServer::acceptConnections() {
 
     while (true) {
         int client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_len);
-        // logger::log("Received request from: " + std::to_string(client_socket));
+        logger::log("Received request from: " + std::to_string(client_socket));
         if (client_socket == -1) {
             perror("Accept failed");
             break;
@@ -235,48 +226,48 @@ void HttpServer::acceptConnections() {
 }
 
 void HttpServer::parseHttpRequest(const std::string& requestBuffer) {
-    //// find the position of the first '\r\n'
-    //size_t endOfFirstLine = requestBuffer.find("\r\n");
+    // find the position of the first '\r\n'
+    size_t endOfFirstLine = requestBuffer.find("\r\n");
 
-    //if (endOfFirstLine != std::string::npos) {
-    //    // extract the first line
-    //    std::string firstLine = requestBuffer.substr(0, endOfFirstLine);
+    if (endOfFirstLine != std::string::npos) {
+       // extract the first line
+       std::string firstLine = requestBuffer.substr(0, endOfFirstLine);
 
-    //    // parse the first line (assuming "METHOD /route HTTP/1.1")
-    //    std::istringstream iss(firstLine);
-    //    std::string method, route, httpVersion;
+       // parse the first line (assuming "METHOD /route HTTP/1.1")
+       std::istringstream iss(firstLine);
+       std::string method, route, httpVersion;
 
-    //    if (iss >> method >> route >> httpVersion) {
-    //        // Store the parsed information in the map
-    //        httpRequest.setMethod(method);
-    //        httpRequest.setPath(route);
-    //        // httpRequest.setVersion(httpVersion);
+       if (iss >> method >> route >> httpVersion) {
+           // Store the parsed information in the map
+           httpRequest.setMethod(method);
+           httpRequest.setPath(route);
+           // httpRequest.setVersion(httpVersion);
 
-    //    }
-    //    else {
-    //        logger::error("Failed to parse the first line of the HTTP request.");
-    //    }
-    //}
-    //else {
-    //    logger::error("No valid HTTP request found in the buffer.");
-    //}
+       }
+       else {
+           logger::error("Failed to parse the first line of the HTTP request.");
+       }
+    }
+    else {
+       logger::error("No valid HTTP request found in the buffer.");
+    }
 }
 
 bool HttpServer::checkRoutes() {
-    //try {
-    //    std::string requestRoute = httpRequest.getPath();
-    //    logger::log("Received route \"" + requestRoute + "\"");
-    //    for (const auto& route : routes) {
-    //        // std::cout << "Route first: " << route.first << std::endl;
-    //        if (route.first == requestRoute) {
-    //            return true;
-    //        }
-    //    }
+    try {
+       std::string requestRoute = httpRequest.getPath();
+       logger::log("Received route \"" + requestRoute + "\"");
+       for (const auto& route : routes) {
+           // std::cout << "Route first: " << route.first << std::endl;
+           if (route.first == requestRoute) {
+               return true;
+           }
+       }
 
-    //}
-    //catch (MyCustomException error) {
-    //    logger::error(error.what());
-    //}
+    }
+    catch (MyCustomException error) {
+       logger::error(error.what());
+    }
     return false;
 }
 
