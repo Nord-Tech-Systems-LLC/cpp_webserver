@@ -41,8 +41,7 @@ void HttpServer::start() {
     // Close the server socket
     closesocket(server_socket);
 
-    // Cleanup Winsock
-    //WSACleanup();
+
 }
 
 void HttpServer::addRoute(const std::string& path, std::function<void(Request&, Response&)> handler) {
@@ -77,11 +76,11 @@ char* HttpServer::get_ip_str(const struct sockaddr* sa, char* s, size_t maxlen) 
 }
 
 void HttpServer::printRoutes() {
-    //logger::log("Possible Routes:");
-    //for (const auto& pair : routes) {
-    //    std::cout << pair.first << "\n";
-    //}
-    //std::cout << std::endl;
+    logger::log("Possible Routes:");
+    for (const auto& pair : routes) {
+       std::cout << pair.first << "\n";
+    }
+    std::cout << std::endl;
 }
 
 bool HttpServer::createSocket() {
@@ -189,21 +188,21 @@ void HttpServer::handleRequest(int client_socket) {
 }
 
 void HttpServer::handleResponse(int client_socket) {
-    //// print response headers
-    //logger::log("Response Headers:\n");
-    //for (const auto& header : httpResponse.getHeaders()) {
-    //    std::cout << header.first + ": " + header.second << "\n";
-    //}
-    //std::cout << std::endl;
+    // print response headers
+    logger::log("Response Headers:\n");
+    for (const auto& header : httpResponse.getHeaders()) {
+       std::cout << header.first + ": " + header.second << "\n";
+    }
+    std::cout << std::endl;
 
-    //// while bytes_written is less than byte_count_transfer
-    //int byte_count_transfer = 0;
-    //// logger::log("Response Body: " + httpResponse.getBody());
-    //ssize_t bytes_written = write(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()));
-    //do {
-    //    byte_count_transfer++;
-    //} while (byte_count_transfer <= bytes_written);
-    //logger::log("Sent response to client socket " + std::to_string(client_socket));
+    // while bytes_written is less than byte_count_transfer
+    int byte_count_transfer = 0;
+    // logger::log("Response Body: " + httpResponse.getBody());
+    SSIZE_T bytes_written = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+    do {
+       byte_count_transfer++;
+    } while (byte_count_transfer <= bytes_written);
+    logger::log("Sent response to client socket " + std::to_string(client_socket));
 }
 
 void HttpServer::acceptConnections() {
@@ -273,4 +272,8 @@ bool HttpServer::checkRoutes() {
 
 HttpServer::~HttpServer() {
     //close(server_socket);
+    closesocket(server_socket);
+    
+    // Cleanup Winsock
+    WSACleanup();
 }
