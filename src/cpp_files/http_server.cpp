@@ -4,8 +4,22 @@
 #include "../hpp_files/server_logging.hpp"
 
 
-#include <WinSock2.h>
-#include <ws2tcpip.h>
+
+#ifdef __linux__
+    // linux libraries
+    #include <arpa/inet.h>
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+    #include <unistd.h>
+#elif _WIN32
+    // windows libraries
+    #include <WinSock2.h>
+    #include <ws2tcpip.h>
+#else
+    #error(OS not detected)
+#endif
+
+
 
 #include <cstring>
 #include <functional>
@@ -25,21 +39,31 @@ HttpServer::HttpServer(const char* ip_address, const char* port) :
 }
 
 void HttpServer::start() {
-    // Initialize Winsock
-    WSADATA wsa;
+    #ifdef _WIN32
+        // Initialize Winsock
+        WSADATA wsa;
+        int init_winsock = WSAStartup(MAKEWORD(2, 0), &wsa);
+        if (init_winsock != 0) {
+            printf("WSAStartup failed: %d\n", init_winsock);
+        }
+    #endif
 
-    iResult = WSAStartup(MAKEWORD(2, 0), &wsa);
-    if (iResult != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
-    }
 
     if (createSocket() && bindSocket() && listenSocket()) {
         std::cout << "Server listening on port " << port << std::endl;
         acceptConnections();
     }
 
-    // Close the server socket
-    closesocket(server_socket);
+    // // close the server socket
+    // #ifdef __linux__
+    //     close(server_socket);
+    // #elif _WIN32
+    //     closesocket(server_socket);
+    //     // cleanup Winsock
+    //     WSACleanup();
+    // #else
+    //     #error(OS not detected)
+    // #endif
 
 
 }
@@ -92,21 +116,32 @@ bool HttpServer::createSocket() {
 }
 
 bool HttpServer::bindSocket() {
+    // the sockaddr_in structure specifies the address family
     struct sockaddr_in server_address;
 
+    // resets server address
     memset(&server_address, 0, sizeof(server_address));
+
+    // sets IP address, and port to be connected to
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr(ip_address);
-    // server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(std::stoi(port));
 
-    // set SO_REUSEADDR option
-    const char opt = 1;
+    // set SO_REUSEADDR option to reuse address and prevent being able to start up
+    #ifdef __linux__
+        int opt = 1;
+    #elif _WIN32
+        const char opt = 1;
+    #else
+        #error(OS not detected)
+    #endif
+
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         perror("Setsockopt failed");
         return false;
     }
 
+    // binding socket
     if (bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
         perror("Bind failed");
         return false;
@@ -137,7 +172,15 @@ void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
     char buffer[3060];
     memset(buffer, 0, 3060); // resetting buffer between requests
-    SSIZE_T bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+    
+    #ifdef __linux__
+        ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+    #elif _WIN32
+        SSIZE_T bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+    #else
+        #error(OS not detected)
+    #endif
+
     std::string request(buffer);
 
     // print request
@@ -165,25 +208,45 @@ void HttpServer::handleRequest(int client_socket) {
        // if route exists
        routes.find(httpRequest.getPath())->second(httpRequest, httpResponse);
        handleResponse(client_socket);
-       closesocket(client_socket);
+        
+        // close the server socket
+        #ifdef __linux__
+            close(server_socket);
+        #elif _WIN32
+            closesocket(server_socket);
+            // cleanup Winsock
+            WSACleanup();
+        #else
+            #error(OS not detected)
+        #endif
     }
     else {
-       // if route doesn't exist
-       logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
+        // if route doesn't exist
+        logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
 
-       // set headers
-       httpResponse.setHeaders({
-           {"Content-Type", "text/html"},
-           {"Connection", "keep-alive"},
-           {"Accept-Encoding", "gzip, deflate, br",}
-           });
+        // set headers
+        httpResponse.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+            });
 
-       // error response
-       std::string errorResponse = "Route does not exist!";
-       std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
-       httpResponse.setBody(response);
-       handleResponse(client_socket);
-       closesocket(client_socket);
+        // error response
+        std::string errorResponse = "Route does not exist!";
+        std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
+        httpResponse.setBody(response);
+        handleResponse(client_socket);
+        
+        // close the server socket
+        #ifdef __linux__
+            close(server_socket);
+        #elif _WIN32
+            closesocket(server_socket);
+            // cleanup Winsock
+            WSACleanup();
+        #else
+            #error(OS not detected)
+        #endif
     }
 }
 
@@ -198,7 +261,15 @@ void HttpServer::handleResponse(int client_socket) {
     // while bytes_written is less than byte_count_transfer
     int byte_count_transfer = 0;
     // logger::log("Response Body: " + httpResponse.getBody());
-    SSIZE_T bytes_written = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+
+    #ifdef __linux__
+        ssize_t bytes_written = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+    #elif _WIN32
+        SSIZE_T bytes_written = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+    #else
+        #error(OS not detected)
+    #endif
+
     do {
        byte_count_transfer++;
     } while (byte_count_transfer <= bytes_written);
@@ -207,7 +278,14 @@ void HttpServer::handleResponse(int client_socket) {
 
 void HttpServer::acceptConnections() {
     struct sockaddr_storage client_address;
-    int client_address_len = sizeof(client_address);
+
+    #ifdef __linux__
+        socklen_t client_address_len = sizeof(client_address);
+    #elif _WIN32
+        int client_address_len = sizeof(client_address);
+    #else
+        #error(OS not detected)
+    #endif
 
     while (true) {
         int client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_len);
@@ -271,9 +349,14 @@ bool HttpServer::checkRoutes() {
 }
 
 HttpServer::~HttpServer() {
-    //close(server_socket);
-    closesocket(server_socket);
-    
-    // Cleanup Winsock
-    WSACleanup();
+    // close the server socket
+    #ifdef __linux__
+        close(server_socket);
+    #elif _WIN32
+        closesocket(server_socket);
+        // cleanup Winsock
+        WSACleanup();
+    #else
+        #error(OS not detected)
+    #endif
 }
