@@ -3,8 +3,6 @@
 #include "../hpp_files/http_server.hpp"
 #include "../hpp_files/server_logging.hpp"
 
-
-
 #ifdef __linux__
     // linux libraries
     #include <arpa/inet.h>
@@ -18,8 +16,6 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
-
-
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -29,11 +25,8 @@
 #include <sstream>
 #include <algorithm>
 
-
-
 HttpServer::HttpServer(const char* ip_address, const char* port) :
     ip_address(ip_address), port(port), server_socket(0) {
-
 }
 
 void HttpServer::start() {
@@ -45,7 +38,6 @@ void HttpServer::start() {
             printf("WSAStartup failed: %d\n", init_winsock);
         }
     #endif
-
 
     if (createSocket() && bindSocket() && listenSocket()) {
         std::cout << "Server listening on port " << port << std::endl;
@@ -60,7 +52,6 @@ void HttpServer::start() {
         // cleanup Winsock
         WSACleanup();
     #endif
-
 
 }
 
@@ -202,7 +193,6 @@ void HttpServer::handleRequest(int client_socket) {
     for (const auto& params : httpRequest.getParams()) {
        std::cout << params.first << " : " << params.second << std::endl;
     };
-
 
     // setting main route for lookup
     httpRequest.setPath(extractMainRoute(httpRequest.getPath()));

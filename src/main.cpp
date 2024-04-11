@@ -33,7 +33,6 @@ int main() {
             {"Accept-Encoding", "gzip, deflate, br",}
         });
 
-
         std::string paramValue = httpRequest.returnParamValue("testing2");
         
         // response
