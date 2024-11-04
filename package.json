@@ -1,0 +1,7 @@
+{
+    "packages": {
+        "example_package": {
+            "git_link": "git@github.com:Nord-Tech-Systems-LLC/example_package.git"
+        }
+    }
+}
