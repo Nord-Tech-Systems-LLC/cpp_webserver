@@ -1,99 +1,124 @@
 #include <string>
 #include <map>
 #include <sstream>
-#include "../hpp_files/response.hpp"
-#include "../hpp_files/server_logging.hpp"
+#include "src/hpp_files/response.hpp"
+#include "src/hpp_files/server_logging.hpp"
 
-
-// getters 
-int Response::getStatusCode() const {
+// getters
+int Response::getStatusCode() const
+{
     return statusCode;
 }
 
-std::string Response::getStatusMessage() const {
+std::string Response::getStatusMessage() const
+{
     return statusMessage;
 }
 
-std::map<std::string, std::string> Response::getHeaders() const {
+std::map<std::string, std::string> Response::getHeaders() const
+{
     return headers;
 }
 
-std::string Response::getBody() const {
+std::string Response::getBody() const
+{
     return body;
 }
 
-std::string Response::getRequestMethod() const {
+std::string Response::getRequestMethod() const
+{
     return requestMethod;
 }
 
 // setters
-void Response::setStatusCode(int newStatusCode) {
+void Response::setStatusCode(int newStatusCode)
+{
     statusCode = newStatusCode;
 }
 
-void Response::setStatusMessage(std::string newStatusMessage) {
+void Response::setStatusMessage(std::string newStatusMessage)
+{
     statusMessage = newStatusMessage;
 }
 
-void Response::setHeaders(std::map<std::string, std::string>newHeaders) {
+void Response::setHeaders(std::map<std::string, std::string> newHeaders)
+{
     headers = newHeaders;
 }
 
-void Response::setBody(std::string newBody) {
+void Response::setBody(std::string newBody)
+{
     body = newBody;
 }
 
-void Response::setRequestMethod(std::string newRequestMethod) {
+void Response::setRequestMethod(std::string newRequestMethod)
+{
     requestMethod = newRequestMethod;
 }
 
 // response router
-std::string Response::GET(std::string responseContent) {
-    if (requestMethod != "GET") {
+std::string Response::GET(std::string responseContent)
+{
+    if (requestMethod != "GET")
+    {
         logger::error("Requested: " + requestMethod + " / Expected: 'GET'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
         return body;
-    } else {
+    }
+    else
+    {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
         return body;
     }
 }
 
-std::string Response::PUT(std::string responseContent) {
-    if (requestMethod != "PUT") {
+std::string Response::PUT(std::string responseContent)
+{
+    if (requestMethod != "PUT")
+    {
         logger::error("Requested: " + requestMethod + " / Expected: 'PUT'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
         return body;
-    } else {
+    }
+    else
+    {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
         return body;
     }
 }
 
-std::string Response::POST(std::string responseContent) {
-    if (requestMethod != "POST") {
+std::string Response::POST(std::string responseContent)
+{
+    if (requestMethod != "POST")
+    {
         logger::error("Requested: " + requestMethod + " / Expected: 'POST'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
         return body;
-    } else {
+    }
+    else
+    {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
         return body;
     }
 }
 
-std::string Response::DELETE(std::string responseContent) {
-    if (requestMethod != "DELETE") {
+std::string Response::DELETE(std::string responseContent)
+{
+    if (requestMethod != "DELETE")
+    {
         logger::error("Requested: " + requestMethod + " / Expected: 'DELETE'" + " -- Improper request method");
         std::string response = buildResponse("400 Bad Request", "Improper request method.");
         body = response;
         return body;
-    } else {
+    }
+    else
+    {
         std::string response = buildResponse("200 OK", responseContent);
         body = response;
         return body;
@@ -101,22 +126,25 @@ std::string Response::DELETE(std::string responseContent) {
 }
 
 // helper methods
-std::string Response::contentLength(const std::string &input_body) {
+std::string Response::contentLength(const std::string &input_body)
+{
     // input html return content length
     return std::to_string(input_body.size());
 };
 
-std::string Response::buildResponse(const std::string &responseStatus, const std::string &responseContent) {
+std::string Response::buildResponse(const std::string &responseStatus, const std::string &responseContent)
+{
     std::string responseLength = contentLength(responseContent);
     headers["Content-Length"] = responseLength;
     std::ostringstream response;
-    
+
     // append HTTP headers
     response << "HTTP/1.1 " + responseStatus + "\r\n";
-    for (const auto& header : headers) {
+    for (const auto &header : headers)
+    {
         response << header.first << ": " << header.second << "\r\n";
     }
-    
+
     // add a blank line to separate headers from body
     response << "\r\n";
     response << responseContent;
