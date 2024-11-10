@@ -3,10 +3,6 @@
 // #include "hpp_files/request.hpp"
 // #include "hpp_files/response.hpp"
 // #include "hpp_files/http_server.hpp"
-// // #include "hpp_files/server_logging.hpp"
-
-// // TODO: use the link below to clean up windows code and rename variables
-// // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-send
 
 // int main() {
 //     HttpServer server("127.0.0.1", "8080");
