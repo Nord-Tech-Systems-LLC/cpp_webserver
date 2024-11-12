@@ -4,35 +4,64 @@
 #define REQUEST_H
 
 #include <string>
+#include <vector>
+// #include <map>
 #include <unordered_map>
-#include <map>
 
-class Request {
+#ifndef MAX_HTTP_HEADERS
+#define MAX_HTTP_HEADERS 30
+#endif
+
+struct HttpHeader
+{
+    std::string name;  // Header name
+    std::string value; // Header value
+};
+
+class Request
+{
 private:
-    std::string method;
-    std::string path;
-    std::map<std::string, std::string> headers;
-    std::string body;
+    // HttpMessage properties
+    std::string method;              // HTTP method (GET, POST, etc.)
+    std::string uri;                 // Requested URI
+    std::string query;               // Query parameters as a single string
+    std::string proto;               // HTTP version (e.g., HTTP/1.1)
+    std::vector<HttpHeader> headers; // Headers as vector of HttpHeader
+    std::string body;                // Body content
+    std::string head;                // Request line and headers as a single string
+    std::string message;             // Full request message (head + body)
+
+    // Parsed query parameters for easier access
     std::unordered_map<std::string, std::string> queryParams;
 
 public:
-    // getters
+    // Getters
     std::string getMethod() const;
-    std::string getPath() const;
-    std::map<std::string, std::string> getHeaders() const;
+    std::string getUri() const;
+    std::string getProto() const;
+    std::string getQuery() const;
+    std::vector<HttpHeader> getHeaders() const;
     std::string getBody() const;
+    std::string getHead() const;
+    std::string getMessage() const;
     std::unordered_map<std::string, std::string> getParams() const;
-    std::string returnParamValue(std::string paramKey);
 
-    // setters
-    void setMethod(std::string newMethod);
-    void setPath(std::string newPath);
-    void setHeaders(std::map<std::string, std::string> newHeaders);
-    void setBody(std::string newBody);
-    void setParams(std::string queryString);
+    // Setters
+    void setMethod(const std::string &newMethod);
+    void setUri(const std::string &newUri);
+    void setProto(const std::string &newProto);
+    void setHeaders(const std::vector<HttpHeader> &newHeaders);
+    void setBody(const std::string &newBody);
+    void setHead(const std::string &newHead);
+    void setMessage(const std::string &newMessage);
+    void setParams(const std::string &queryString);
 
-    // helper methods
-    std::string contentLength(const std::string& input_body);
+    // Helper Methods
+    std::string returnParamValue(const std::string &paramKey) const;
+    std::string contentLength() const;
+
+    // Utility to get specific header value by name
+    std::string getHeaderValue(const std::string &name) const;
 };
 
 #endif

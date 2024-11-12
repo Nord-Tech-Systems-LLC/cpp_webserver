@@ -10,25 +10,6 @@
 #include <sstream>
 #include <iostream>
 
-#ifndef MAX_HTTP_HEADERS
-#define MAX_HTTP_HEADERS 30
-#endif
-
-struct HttpHeader
-{
-    std::string name;  // Header name
-    std::string value; // Header value
-};
-
-struct HttpMessage
-{
-    std::string method, uri, query, proto; // Request & response
-    HttpHeader headers[MAX_HTTP_HEADERS];  // Headers
-    std::string body;                      // Body
-    std::string head;                      // Request + headers
-    std::string message;                   // Request + headers + body
-};
-
 class HttpServer
 {
 public:
@@ -61,8 +42,7 @@ private:
     std::map<std::string, std::function<void(Request &, Response &)>> routes;
 
     // map to store method, route, and http version
-    const std::string getHttpHeader(struct HttpMessage &message, const std::string &name);
-    void parseHttpRequest(const std::string &requestBuffer);
+    void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
 };
 
 #endif

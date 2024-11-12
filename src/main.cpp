@@ -1,6 +1,9 @@
 #include <string>
 #include "cpp_webserver_include/core.hpp"
 
+// TODO:
+// - bug with setting headers on request from main.cpp
+
 int main()
 {
     HttpServer server("127.0.0.1", "8080");
@@ -8,6 +11,12 @@ int main()
     // add additional routes
     server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse)
                     {
+
+        httpRequest.setHeaders({
+            {"Content-Type", "text/html"},
+            {"Connection", "keep-alive"},
+            {"Accept-Encoding", "gzip, deflate, br",}
+        });
         // set headers
         httpResponse.setHeaders({
             {"Content-Type", "text/html"},
