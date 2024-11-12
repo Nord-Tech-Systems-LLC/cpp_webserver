@@ -1,8 +1,7 @@
 #include <string>
 #include <map>
 #include <sstream>
-#include "src/hpp_files/response.hpp"
-#include "src/hpp_files/server_logging.hpp"
+#include "cpp_webserver_include/core.hpp"
 
 // getters
 int Response::getStatusCode() const

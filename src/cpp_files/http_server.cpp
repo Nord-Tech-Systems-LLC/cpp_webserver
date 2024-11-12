@@ -1,7 +1,4 @@
-#include "src/hpp_files/request.hpp"
-#include "src/hpp_files/response.hpp"
-#include "src/hpp_files/http_server.hpp"
-#include "src/hpp_files/server_logging.hpp"
+#include "cpp_webserver_include/core.hpp"
 
 #ifdef __linux__
 // linux libraries

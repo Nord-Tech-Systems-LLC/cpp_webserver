@@ -1,7 +1,7 @@
 #include <string>
 #include <unordered_map>
 #include <map>
-#include "src/hpp_files/request.hpp"
+#include "cpp_webserver_include/core.hpp"
 
 // getters
 std::string Request::getMethod() const
