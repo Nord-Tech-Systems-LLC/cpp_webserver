@@ -32,7 +32,6 @@ set(MY_LIBRARIES
 )
 
 # Only create the executable if this is the main project
-message("${CMAKE_PROJECT_NAME}, ${PROJECT_NAME}")
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     # Define the executable target (e.g., cpp_webserver_run executable)
     add_executable(cpp_webserver_run src/main.cpp)  # Use a specific main file or source files for the executable
