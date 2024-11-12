@@ -31,18 +31,19 @@ set(MY_LIBRARIES
     ${CPP_WEBSERVER_TARGET_NAME}::${CPP_WEBSERVER_TARGET_NAME}  # Link to cpp_webserver library itself
 )
 
-# Link the libraries to cpp_webserver library
-foreach(CPP_LIB ${MY_LIBRARIES})
-    target_link_libraries(${CPP_WEBSERVER_TARGET_NAME} PRIVATE ${CPP_LIB})
-endforeach()
+# Only create the executable if this is the main project
+message("${CMAKE_PROJECT_NAME}, ${PROJECT_NAME}")
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    # Define the executable target (e.g., cpp_webserver_run executable)
+    add_executable(cpp_webserver_run src/main.cpp)  # Use a specific main file or source files for the executable
 
-# Define the executable target (e.g., beldum executable)
-add_executable(cpp_webserver_run src/main.cpp)  # Use a specific main file or source files for the executable
+    # Link libraries to executable
+    foreach(CPP_LIB ${MY_LIBRARIES})
+        target_link_libraries(cpp_webserver_run PRIVATE ${CPP_LIB})
+    endforeach()
 
-# Link libraries to executable
-foreach(CPP_LIB ${MY_LIBRARIES})
-    target_link_libraries(cpp_webserver_run PRIVATE ${CPP_LIB})
-endforeach()
-
-# Set output directory for the build (for executables)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/target/debug/build")
+    # Set output directory for the build (for executables)
+    set_target_properties(cpp_webserver_run PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/target/debug/build"
+    )
+endif()
