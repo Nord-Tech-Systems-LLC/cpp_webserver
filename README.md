@@ -1,6 +1,6 @@
 # C++ Backend Webserver
 
-A modern C++ backend webserver library, using HTTP/1, and HTTP/2.
+A modern C++ backend webserver library, using HTTP/1.
 
 ### to build project execute in root directory of project:
 
