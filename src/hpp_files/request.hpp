@@ -12,15 +12,13 @@
 #define MAX_HTTP_HEADERS 30
 #endif
 
-struct HttpHeader
-{
+struct HttpHeader {
     std::string name;  // Header name
     std::string value; // Header value
 };
 
-class Request
-{
-private:
+class Request {
+  private:
     // HttpMessage properties
     std::string method;              // HTTP method (GET, POST, etc.)
     std::string uri;                 // Requested URI
@@ -34,7 +32,7 @@ private:
     // Parsed query parameters for easier access
     std::unordered_map<std::string, std::string> queryParams;
 
-public:
+  public:
     // Getters
     std::string getMethod() const;
     std::string getUri() const;

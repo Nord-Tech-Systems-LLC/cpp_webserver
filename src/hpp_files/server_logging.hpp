@@ -4,12 +4,13 @@
 #include <string>
 
 class MyCustomException : public std::exception {
-   private:
-    const char* message;
+  private:
+    const char *message;
 
-   public:
-    MyCustomException(const char* msg) : message(msg) {}
-    const char* what() {
+  public:
+    MyCustomException(const char *msg) : message(msg) {
+    }
+    const char *what() {
         return message;
     }
 };
@@ -17,8 +18,8 @@ class MyCustomException : public std::exception {
 namespace logger {
 const int BUFFER_SIZE = 30720;
 
-void log(const std::string& message, const char* functionName = __builtin_FUNCTION());
-void error(const std::string& errorMessage, const char* functionName = __builtin_FUNCTION());
-void section(const std::string& errorMessage, const char* functionName = __builtin_FUNCTION());
+void log(const std::string &message, const char *functionName = __builtin_FUNCTION());
+void error(const std::string &errorMessage, const char *functionName = __builtin_FUNCTION());
+void section(const std::string &errorMessage, const char *functionName = __builtin_FUNCTION());
 
-}  // namespace logger
+} // namespace logger

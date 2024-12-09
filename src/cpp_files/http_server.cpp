@@ -55,13 +55,16 @@ void HttpServer::addRoute(const std::string &method,
                           const std::string &route,
                           std::function<void(Request &, Response &)> handler) {
     // convert route to lowercase
-    std::string lowerCasePath = method;
+    std::string lowerCaseRoute = route;
+
     transform(
-        lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(), [](unsigned char c) {
+        lowerCaseRoute.begin(), lowerCaseRoute.end(), lowerCaseRoute.begin(), [](unsigned char c) {
             return std::tolower(c);
         });
 
-    routes[route] = handler;
+    int route_index = 0;
+    method_route_pair[lowerCaseRoute] = method;
+    routes[lowerCaseRoute] = handler;
 }
 
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
@@ -323,12 +326,25 @@ bool HttpServer::checkRoutes() {
     try {
         std::string requestRoute = httpRequest.getUri();
         logger::log("Received route \"" + requestRoute + "\"");
+
+        // check method matches expected
+        for (const auto &route : method_route_pair) {
+            if (route.first == requestRoute) {
+                if (route.second != httpRequest.getMethod()) {
+                    logger::error("Incorrect API request method: " + httpRequest.getMethod() +
+                                  " Expected: " + route.second);
+                    return false;
+                }
+            }
+        }
+
+        // check route exists
         for (const auto &route : routes) {
-            // std::cout << "Route first: " << route.first << std::endl;
             if (route.first == requestRoute) {
                 return true;
             }
         }
+
     } catch (MyCustomException error) {
         logger::error(error.what());
     }
