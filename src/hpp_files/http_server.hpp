@@ -46,8 +46,10 @@ class HttpServer {
     Request httpRequest;
     Response httpResponse;
     bool checkRoutes();
+    bool is_route_match(const std::string &routePattern, const std::string &requestUri);
     std::map<std::string, std::function<void(Request &, Response &)>> routes;
     std::map<std::string, std::string> method_route_pair;
+    std::string route_template;
 
     // map to store method, route, and http version
     void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);

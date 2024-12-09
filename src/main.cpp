@@ -11,8 +11,8 @@ int main() {
 
     server.get("/", [](Request &req, Response &res) { res.send("Hello, world!"); });
 
-    server.get(
-        "/json", [](Request &req, Response &res) { res.json("{\"message\": \"Hello, JSON\"}"); });
+    server.get("/json/:userId/user/:bookId",
+               [](Request &req, Response &res) { res.json("{\"message\": \"Hello, JSON\"}"); });
 
     server.post("/submit", [](Request &req, Response &res) {
         // Handle POST data

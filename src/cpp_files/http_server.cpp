@@ -183,8 +183,6 @@ void HttpServer::handleRequest(int client_socket) {
         std::string(buffer, bytes_read)); // Store the request message in the HttpMessage struct
 
     // print request
-    logger::section("NEW REQUEST");
-    logger::log("Received Request:\n");
     std::cout << httpRequest.getMessage() << std::endl; // Log the raw request message
 
     // Extract the method, URI, and HTTP version (can be extracted from the message directly)
@@ -212,13 +210,11 @@ void HttpServer::handleRequest(int client_socket) {
         httpRequest.getMethod()); // passing request method to response for validation
 
     // setting main route for lookup
-    logger::log("BEFORE EXTRACT ROUTE" + httpRequest.getUri());
     httpRequest.setUri(extractMainRoute(httpRequest.getUri()));
 
     if (checkRoutes()) {
         // if route exists
-        logger::log("TESTING: " + httpRequest.getUri());
-        routes.find(httpRequest.getUri())->second(httpRequest, httpResponse);
+        routes.find(route_template)->second(httpRequest, httpResponse);
         handleResponse(client_socket);
 
 // close the server socket
@@ -307,6 +303,7 @@ void HttpServer::acceptConnections() {
     while (true) {
         int client_socket =
             accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
+        logger::section("NEW REQUEST");
         logger::log("Received request from: " + std::to_string(client_socket));
         if (client_socket == -1) {
             perror("Accept failed");
@@ -319,14 +316,55 @@ void HttpServer::acceptConnections() {
     }
 }
 
+// Split a string into segments by a delimiter
+std::vector<std::string> split_path(const std::string &path, char delimiter = '/') {
+    std::vector<std::string> segments;
+    std::stringstream ss(path);
+    std::string segment;
+
+    while (std::getline(ss, segment, delimiter)) {
+        if (!segment.empty()) {
+            segments.push_back(segment);
+        }
+    }
+
+    return segments;
+}
+
+bool HttpServer::is_route_match(const std::string &routePattern, const std::string &requestUri) {
+    // Split the route pattern and request URI into segments
+    auto routeSegments = split_path(routePattern);
+    auto requestSegments = split_path(requestUri);
+
+    // If the number of segments doesn't match, the route doesn't match
+    if (routeSegments.size() != requestSegments.size()) {
+        return false;
+    }
+
+    // Check each segment for a match
+    for (size_t i = 0; i < routeSegments.size(); ++i) {
+        if (routeSegments[i].front() == ':') {
+            // If the route segment starts with ':', treat it as a wildcard
+            continue;
+        } else if (routeSegments[i] != requestSegments[i]) {
+            // If the segments don't match, return false
+            return false;
+        }
+    }
+
+    // All segments match
+    return true;
+}
+
 bool HttpServer::checkRoutes() {
     try {
-        std::string requestRoute = httpRequest.getUri();
-        logger::log("Received route \"" + requestRoute + "\"");
+        std::string request_route = httpRequest.getUri();
+
+        logger::log("Received route \"" + request_route + "\"");
 
         // check method matches expected
         for (const auto &route : method_route_pair) {
-            if (route.first == requestRoute) {
+            if (route.first == request_route) {
                 if (route.second != httpRequest.getMethod()) {
                     logger::error("Incorrect API request method: " + httpRequest.getMethod() +
                                   " Expected: " + route.second);
@@ -335,9 +373,20 @@ bool HttpServer::checkRoutes() {
             }
         }
 
-        // check route exists
+        // find route template created at beginning routes
         for (const auto &route : routes) {
-            if (route.first == requestRoute) {
+            if (is_route_match(route.first, request_route)) {
+                route_template = route.first;
+            }
+        }
+
+        // split paths into vector for easier access and indexing
+        auto request_segments = split_path(request_route);
+        auto route_segments = split_path(route_template);
+
+        // find route template created at beginning routes
+        for (const auto &route : routes) {
+            if (is_route_match(route.first, request_route)) {
                 return true;
             }
         }
