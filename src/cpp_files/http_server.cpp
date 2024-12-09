@@ -14,6 +14,7 @@
 #endif
 
 #include <algorithm>
+#include <chrono> // For timing
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -159,6 +160,8 @@ std::string extractMainRoute(const std::string &url) {
 }
 
 void HttpServer::handleRequest(int client_socket) {
+    auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
+
     std::cout.flush();
     char buffer[3060];
     memset(buffer, 0, 3060); // resetting buffer between requests
@@ -212,19 +215,6 @@ void HttpServer::handleRequest(int client_socket) {
     logger::log("BEFORE EXTRACT ROUTE" + httpRequest.getUri());
     httpRequest.setUri(extractMainRoute(httpRequest.getUri()));
 
-    // std::cout << "Headers:\n";
-    // for (const auto &header : httpRequest.getHeaders())
-    // {
-    //     std::cout << header.name << ": " << header.value << std::endl;
-    // }
-
-    // print params
-    // std::cout << "Params:\n";
-    // for (const auto &params : httpRequest.getParams())
-    // {
-    //     std::cout << params.first << " : " << params.second << std::endl;
-    // };
-
     if (checkRoutes()) {
         // if route exists
         logger::log("TESTING: " + httpRequest.getUri());
@@ -263,6 +253,13 @@ void HttpServer::handleRequest(int client_socket) {
         closesocket(client_socket);
 #endif
     }
+
+    // stop timer and calculate duration
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+
+    // log the duration
+    logger::log("Request handled in " + std::to_string(elapsed.count()) + " seconds");
 }
 
 void HttpServer::handleResponse(int client_socket) {
