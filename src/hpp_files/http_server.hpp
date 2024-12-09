@@ -19,7 +19,11 @@ public:
     void printRoutes();
 
     // dispatch events
-    void addRoute(const std::string &path, std::function<void(Request &, Response &)> handler);
+    void addRoute(const std::string &method, const std::string &route, std::function<void(Request &, Response &)> handler);
+
+    void get(const std::string &route, std::function<void(Request &, Response &)> handler);
+    void post(const std::string &route, std::function<void(Request &, Response &)> handler);
+    void put(const std::string &route, std::function<void(Request &, Response &)> handler);
 
 private:
     const char *port;

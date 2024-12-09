@@ -13,33 +13,30 @@
 #pragma comment(lib, "ws2_32.lib")
 #endif
 
+#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <thread>
-#include <sstream>
-#include <algorithm>
 
-HttpServer::HttpServer(const char *ip_address, const char *port) : ip_address(ip_address), port(port), server_socket(0)
-{
+HttpServer::HttpServer(const char *ip_address, const char *port)
+    : ip_address(ip_address), port(port), server_socket(0) {
 }
 
-void HttpServer::start()
-{
+void HttpServer::start() {
 #ifdef _WIN32
     // Initialize Winsock
     WSADATA wsa;
     int init_winsock = WSAStartup(MAKEWORD(2, 0), &wsa);
-    if (init_winsock != 0)
-    {
+    if (init_winsock != 0) {
         printf("WSAStartup failed: %d\n", init_winsock);
     }
 #endif
 
-    if (createSocket() && bindSocket() && listenSocket())
-    {
+    if (createSocket() && bindSocket() && listenSocket()) {
         std::cout << "Server listening on port " << port << std::endl;
         acceptConnections();
     }
@@ -54,22 +51,22 @@ void HttpServer::start()
 #endif
 }
 
-void HttpServer::addRoute(const std::string &path, std::function<void(Request &, Response &)> handler)
-{
+void HttpServer::addRoute(const std::string &method,
+                          const std::string &route,
+                          std::function<void(Request &, Response &)> handler) {
     // convert route to lowercase
-    std::string lowerCasePath = path;
-    transform(lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(),
-              [](unsigned char c)
-              { return std::tolower(c); });
+    std::string lowerCasePath = method;
+    transform(
+        lowerCasePath.begin(), lowerCasePath.end(), lowerCasePath.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
 
-    routes[lowerCasePath] = handler;
+    routes[route] = handler;
 }
 
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
-char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen)
-{
-    switch (sa->sa_family)
-    {
+char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
+    switch (sa->sa_family) {
         // IPv4
     case AF_INET:
         inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr), s, maxlen);
@@ -89,28 +86,23 @@ char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen)
     return s;
 }
 
-void HttpServer::printRoutes()
-{
+void HttpServer::printRoutes() {
     logger::log("Possible Routes:");
-    for (const auto &pair : routes)
-    {
+    for (const auto &pair : routes) {
         std::cout << pair.first << "\n";
     }
     std::cout << std::endl;
 }
 
-bool HttpServer::createSocket()
-{
-    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    {
+bool HttpServer::createSocket() {
+    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Socket creation failed");
         return false;
     }
     return true;
 }
 
-bool HttpServer::bindSocket()
-{
+bool HttpServer::bindSocket() {
     // the sockaddr_in structure specifies the address family
     struct sockaddr_in server_address;
 
@@ -125,23 +117,20 @@ bool HttpServer::bindSocket()
 // set SO_REUSEADDR option to reuse address and prevent being able to start up
 #ifdef __linux__
     int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-    {
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         perror("Setsockopt failed");
         return false;
     }
 #elif _WIN32
     const char opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-    {
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         perror("Setsockopt failed");
         return false;
     }
 #endif
 
     // binding socket
-    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
-    {
+    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1) {
         perror("Bind failed");
         return false;
     }
@@ -149,31 +138,24 @@ bool HttpServer::bindSocket()
     return true;
 }
 
-bool HttpServer::listenSocket()
-{
-    if (listen(server_socket, 10) == -1)
-    {
+bool HttpServer::listenSocket() {
+    if (listen(server_socket, 10) == -1) {
         perror("Listen failed");
         return false;
     }
     return true;
 }
 
-std::string extractMainRoute(const std::string &url)
-{
+std::string extractMainRoute(const std::string &url) {
     size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos)
-    {
+    if (queryPos != std::string::npos) {
         return url.substr(0, queryPos);
-    }
-    else
-    {
+    } else {
         return url;
     }
 }
 
-void HttpServer::handleRequest(int client_socket)
-{
+void HttpServer::handleRequest(int client_socket) {
     std::cout.flush();
     char buffer[3060];
     memset(buffer, 0, 3060); // resetting buffer between requests
@@ -181,19 +163,18 @@ void HttpServer::handleRequest(int client_socket)
     int byte_count_transfer = 0;
 #ifdef __linux__
     ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    do
-    {
+    do {
         byte_count_transfer++;
     } while (byte_count_transfer <= bytes_read);
 #elif _WIN32
     SSIZE_T bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    do
-    {
+    do {
         byte_count_transfer++;
     } while (byte_count_transfer <= bytes_read);
 #endif
 
-    httpRequest.setMessage(std::string(buffer, bytes_read)); // Store the request message in the HttpMessage struct
+    httpRequest.setMessage(
+        std::string(buffer, bytes_read)); // Store the request message in the HttpMessage struct
 
     // print request
     logger::section("NEW REQUEST");
@@ -206,8 +187,8 @@ void HttpServer::handleRequest(int client_socket)
     size_t proto_end = httpRequest.getMessage().find("\r\n", uri_end + 1);
 
     // Ensure each part is found
-    if (method_end == std::string::npos || uri_end == std::string::npos || proto_end == std::string::npos)
-    {
+    if (method_end == std::string::npos || uri_end == std::string::npos ||
+        proto_end == std::string::npos) {
         throw std::invalid_argument("Malformed request line");
     }
 
@@ -218,10 +199,11 @@ void HttpServer::handleRequest(int client_socket)
     // Set headers by parsing request
     std::vector<HttpHeader> newHeaders = {};
     extractHttpHeader(newHeaders, httpRequest.getMessage());
-    httpRequest.setHeaders(newHeaders);                     // Setting headers after each request
-    httpRequest.setParams("");                              // resetting params after each request
-    httpRequest.setParams(httpRequest.getUri());            // parse url params and set them for the request
-    httpResponse.setRequestMethod(httpRequest.getMethod()); // passing request method to response for validation
+    httpRequest.setHeaders(newHeaders);          // Setting headers after each request
+    httpRequest.setParams("");                   // resetting params after each request
+    httpRequest.setParams(httpRequest.getUri()); // parse url params and set them for the request
+    httpResponse.setRequestMethod(
+        httpRequest.getMethod()); // passing request method to response for validation
 
     // setting main route for lookup
     logger::log("BEFORE EXTRACT ROUTE" + httpRequest.getUri());
@@ -240,8 +222,7 @@ void HttpServer::handleRequest(int client_socket)
     //     std::cout << params.first << " : " << params.second << std::endl;
     // };
 
-    if (checkRoutes())
-    {
+    if (checkRoutes()) {
         // if route exists
         logger::log("TESTING: " + httpRequest.getUri());
         routes.find(httpRequest.getUri())->second(httpRequest, httpResponse);
@@ -253,11 +234,10 @@ void HttpServer::handleRequest(int client_socket)
 #elif _WIN32
         closesocket(client_socket);
 #endif
-    }
-    else
-    {
+    } else {
         // if route doesn't exist
-        logger::error("client_socket " + std::to_string(client_socket) + " -- route does not exist...");
+        logger::error("client_socket " + std::to_string(client_socket) +
+                      " -- route does not exist...");
 
         // set headers
         httpResponse.setHeaders({{"Content-Type", "text/html"},
@@ -282,12 +262,10 @@ void HttpServer::handleRequest(int client_socket)
     }
 }
 
-void HttpServer::handleResponse(int client_socket)
-{
+void HttpServer::handleResponse(int client_socket) {
     // print response headers
     logger::log("Response Headers:\n");
-    for (const auto &header : httpResponse.getHeaders())
-    {
+    for (const auto &header : httpResponse.getHeaders()) {
         std::cout << header.first + ": " + header.second << "\n";
     }
     std::cout << std::endl;
@@ -298,18 +276,18 @@ void HttpServer::handleResponse(int client_socket)
 
 #ifdef __linux__
     // send response to client socket
-    ssize_t bytes_sent = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
-    do
-    {
+    ssize_t bytes_sent = send(
+        client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+    do {
         byte_count_transfer++;
     } while (byte_count_transfer <= bytes_sent);
     logger::log("Sent response to client socket " + std::to_string(client_socket));
 
 #elif _WIN32
     // send response to client socket
-    SSIZE_T bytes_sent = send(client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
-    do
-    {
+    SSIZE_T bytes_sent = send(
+        client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
+    do {
         byte_count_transfer++;
     } while (byte_count_transfer <= bytes_sent);
     logger::log("Sent response to client socket " + std::to_string(client_socket));
@@ -317,8 +295,7 @@ void HttpServer::handleResponse(int client_socket)
 #endif
 }
 
-void HttpServer::acceptConnections()
-{
+void HttpServer::acceptConnections() {
     struct sockaddr_storage client_address;
 
 #ifdef __linux__
@@ -327,12 +304,11 @@ void HttpServer::acceptConnections()
     int client_address_len = sizeof(client_address);
 #endif
 
-    while (true)
-    {
-        int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
+    while (true) {
+        int client_socket =
+            accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
         logger::log("Received request from: " + std::to_string(client_socket));
-        if (client_socket == -1)
-        {
+        if (client_socket == -1) {
             perror("Accept failed");
             break;
         }
@@ -343,32 +319,25 @@ void HttpServer::acceptConnections()
     }
 }
 
-bool HttpServer::checkRoutes()
-{
-    try
-    {
+bool HttpServer::checkRoutes() {
+    try {
         std::string requestRoute = httpRequest.getUri();
         logger::log("Received route \"" + requestRoute + "\"");
-        for (const auto &route : routes)
-        {
+        for (const auto &route : routes) {
             // std::cout << "Route first: " << route.first << std::endl;
-            if (route.first == requestRoute)
-            {
+            if (route.first == requestRoute) {
                 return true;
             }
         }
-    }
-    catch (MyCustomException error)
-    {
+    } catch (MyCustomException error) {
         logger::error(error.what());
     }
     return false;
 }
 
-void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message)
-{
-    for (int i = 0; i < MAX_HTTP_HEADERS; ++i)
-    {
+void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector,
+                                   const std::string &message) {
+    for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
         // Get header name (from the message) and its value
         headerVector.clear();
         std::istringstream stream(message);
@@ -378,19 +347,16 @@ void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector, const 
         std::getline(stream, line);
 
         // Loop through each subsequent line until we find an empty line
-        while (std::getline(stream, line) && !line.empty() && line != "\r")
-        {
+        while (std::getline(stream, line) && !line.empty() && line != "\r") {
             // Each header line is in the format: "Header-Name: Header-Value"
             size_t colonPos = line.find(":");
-            if (colonPos != std::string::npos)
-            {
+            if (colonPos != std::string::npos) {
                 std::string name = line.substr(0, colonPos);
                 std::string value = line.substr(colonPos + 1);
 
                 // Trim any leading whitespace in the value
                 size_t firstNonSpace = value.find_first_not_of(" \t");
-                if (firstNonSpace != std::string::npos)
-                {
+                if (firstNonSpace != std::string::npos) {
                     value = value.substr(firstNonSpace);
                 }
                 headerVector.push_back({name, value});
@@ -399,8 +365,18 @@ void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector, const 
     }
 }
 
-HttpServer::~HttpServer()
-{
+void HttpServer::get(const std::string &route, std::function<void(Request &, Response &)> handler) {
+    addRoute("GET", route, handler);
+}
+void HttpServer::post(const std::string &route,
+                      std::function<void(Request &, Response &)> handler) {
+    addRoute("POST", route, handler);
+}
+void HttpServer::put(const std::string &route, std::function<void(Request &, Response &)> handler) {
+    addRoute("PUT", route, handler);
+}
+
+HttpServer::~HttpServer() {
 // close the server socket
 #ifdef __linux__
     close(server_socket);

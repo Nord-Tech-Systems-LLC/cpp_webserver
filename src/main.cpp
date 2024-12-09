@@ -1,62 +1,23 @@
-#include <string>
 #include "cpp_webserver_include/core.hpp"
+#include <string>
 
 // TODO:
 // - bug with setting headers on request from main.cpp
 
-int main()
-{
+int main() {
+    // HttpServer server("127.0.0.1", "8080");
+
     HttpServer server("127.0.0.1", "8080");
 
-    // add additional routes
-    server.addRoute("/Custom2", [](Request &httpRequest, Response &httpResponse)
-                    {
+    server.get("/", [](Request &req, Response &res) { res.send("Hello, world!"); });
 
-        httpRequest.setHeaders({
-            {"Content-Type", "text/html"},
-            {"Connection", "keep-alive"},
-            {"Accept-Encoding", "gzip, deflate, br",}
-        });
-        // set headers
-        httpResponse.setHeaders({
-            {"Content-Type", "text/html"},
-            {"Connection", "keep-alive"},
-            {"Accept-Encoding", "gzip, deflate, br",}
-        });
+    server.get(
+        "/json", [](Request &req, Response &res) { res.json("{\"message\": \"Hello, JSON\"}"); });
 
-        // response
-        std::string response = "<html><body>Hello!</body></html>";
-        httpResponse.GET(response); });
-
-    server.addRoute("/testing", [](Request &httpRequest, Response &httpResponse)
-                    {
-        // set headers
-        httpResponse.setHeaders({
-            {"Content-Type", "application/json"},
-            {"Connection", "keep-alive"},
-            {"Accept-Encoding", "gzip, deflate, br",}
-        });
-
-        std::string paramValue = httpRequest.returnParamValue("testing2");
-
-        // response
-        std::string response ="{\"message\": \"" + paramValue + "\"}";
-        httpResponse.GET(response); });
-
-    server.addRoute("/other", [](Request &httpRequest, Response &httpResponse)
-                    {
-                        // set headers
-                        httpResponse.setHeaders({{"Content-Type", "text/html"},
-                                                 {"Connection", "keep-alive"},
-                                                 {
-                                                     "Accept-Encoding",
-                                                     "gzip, deflate, br",
-                                                 }});
-
-                        // response
-                        std::string response = "<html><body>Page 3!</body></html>";
-                        httpResponse.PUT(response); });
-
+    server.post("/submit", [](Request &req, Response &res) {
+        // Handle POST data
+        res.status(201).send("Submitted!");
+    });
     server.printRoutes();
     server.start();
 

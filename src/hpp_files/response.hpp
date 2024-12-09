@@ -3,23 +3,20 @@
 #ifndef RESPONSE_H
 #define RESPONSE_H
 
-#include <string>
 #include <map>
 #include <sstream>
-
-
+#include <string>
 
 class Response {
-private:
+  private:
     int statusCode;
     std::string statusMessage;
     std::map<std::string, std::string> headers;
     std::string body;
     std::string requestMethod;
 
-public:
-
-    // getters 
+  public:
+    // getters
     int getStatusCode() const;
     std::string getStatusMessage() const;
     std::map<std::string, std::string> getHeaders() const;
@@ -29,19 +26,18 @@ public:
     // setters
     void setStatusCode(int newStatusCode);
     void setStatusMessage(std::string newStatusMessage);
-    void setHeaders(std::map<std::string, std::string>newHeaders);
+    void setHeaders(std::map<std::string, std::string> newHeaders);
     void setBody(std::string newBody);
     void setRequestMethod(std::string newRequestMethod);
 
-    // response router
-    std::string GET(std::string responseContent);
-    std::string PUT(std::string responseContent);
-    std::string POST(std::string responseContent);
-    std::string DELETE(std::string responseContent);
-
     // helper methods
-    std::string contentLength(const std::string& input_body);
-    std::string buildResponse(const std::string& responseStatus, const std::string& responseContent);
+    std::string contentLength(const std::string &input_body);
+    std::string buildResponse(const std::string &responseStatus,
+                              const std::string &responseContent);
+
+    void send(const std::string &content);
+    void json(const std::string &jsonResponse);
+    Response &status(int code);
 };
 
 #endif
