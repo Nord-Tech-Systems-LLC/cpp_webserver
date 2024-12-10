@@ -212,7 +212,7 @@ void HttpServer::handleRequest(int client_socket) {
     // setting main route for lookup
     httpRequest.setUri(extractMainRoute(httpRequest.getUri()));
 
-    if (checkRoutes()) {
+    if (check_routes()) {
         // if route exists
         routes.find(route_template)->second(httpRequest, httpResponse);
         handleResponse(client_socket);
@@ -316,25 +316,10 @@ void HttpServer::acceptConnections() {
     }
 }
 
-// Split a string into segments by a delimiter
-std::vector<std::string> split_path(const std::string &path, char delimiter = '/') {
-    std::vector<std::string> segments;
-    std::stringstream ss(path);
-    std::string segment;
-
-    while (std::getline(ss, segment, delimiter)) {
-        if (!segment.empty()) {
-            segments.push_back(segment);
-        }
-    }
-
-    return segments;
-}
-
 bool HttpServer::is_route_match(const std::string &routePattern, const std::string &requestUri) {
     // Split the route pattern and request URI into segments
-    auto routeSegments = split_path(routePattern);
-    auto requestSegments = split_path(requestUri);
+    auto routeSegments = httpRequest.split_path(routePattern);
+    auto requestSegments = httpRequest.split_path(requestUri);
 
     // If the number of segments doesn't match, the route doesn't match
     if (routeSegments.size() != requestSegments.size()) {
@@ -356,7 +341,7 @@ bool HttpServer::is_route_match(const std::string &routePattern, const std::stri
     return true;
 }
 
-bool HttpServer::checkRoutes() {
+bool HttpServer::check_routes() {
     try {
         std::string request_route = httpRequest.getUri();
 
@@ -377,12 +362,13 @@ bool HttpServer::checkRoutes() {
         for (const auto &route : routes) {
             if (is_route_match(route.first, request_route)) {
                 route_template = route.first;
+                httpRequest.setPathParams(route_template, request_route);
             }
         }
 
         // split paths into vector for easier access and indexing
-        auto request_segments = split_path(request_route);
-        auto route_segments = split_path(route_template);
+        auto request_segments = httpRequest.split_path(request_route);
+        auto route_segments = httpRequest.split_path(route_template);
 
         // find route template created at beginning routes
         for (const auto &route : routes) {

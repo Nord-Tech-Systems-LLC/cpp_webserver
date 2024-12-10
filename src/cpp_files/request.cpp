@@ -26,8 +26,11 @@ std::string Request::getHead() const {
 std::string Request::getMessage() const {
     return message;
 }
-std::unordered_map<std::string, std::string> Request::getParams() const {
+std::unordered_map<std::string, std::string> Request::getQueryParams() const {
     return queryParams;
+}
+std::unordered_map<std::string, std::string> Request::getPathParams() const {
+    return pathParams;
 }
 
 // Setters
@@ -69,6 +72,31 @@ void Request::setParams(const std::string &queryString) {
     }
 }
 
+// Parses a query string and stores each parameter in queryParams
+void Request::setPathParams(const std::string &routePattern, const std::string &requestUri) {
+    pathParams.clear();
+
+    // Split the route pattern and request URI into segments
+    auto routeSegments = split_path(routePattern);
+    auto requestSegments = split_path(requestUri);
+
+    // If the number of segments doesn't match, the route doesn't match
+    if (routeSegments.size() != requestSegments.size()) {
+        return;
+    }
+    // Check each segment for a match
+    for (size_t i = 0; i < routeSegments.size(); ++i) {
+        if (routeSegments[i].front() == ':') {
+            // If the route segment starts with ':', treat it as a wildcard
+            pathParams[routeSegments[i]] = requestSegments[i];
+            continue;
+        } else if (routeSegments[i] != requestSegments[i]) {
+            // If the segments don't match, return false
+            return;
+        }
+    }
+}
+
 // Helper Methods
 
 // Returns the value of a specific query parameter by key
@@ -90,4 +118,19 @@ std::string Request::getHeaderValue(const std::string &name) const {
         }
     }
     return "";
+}
+
+// Split a string into segments by a delimiter
+std::vector<std::string> Request::split_path(const std::string &path, char delimiter) {
+    std::vector<std::string> segments;
+    std::stringstream ss(path);
+    std::string segment;
+
+    while (std::getline(ss, segment, delimiter)) {
+        if (!segment.empty()) {
+            segments.push_back(segment);
+        }
+    }
+
+    return segments;
 }

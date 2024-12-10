@@ -29,8 +29,9 @@ class Request {
     std::string head;                // Request line and headers as a single string
     std::string message;             // Full request message (head + body)
 
-    // Parsed query parameters for easier access
-    std::unordered_map<std::string, std::string> queryParams;
+    // Parsed query and path parameters for easier access
+    std::unordered_map<std::string, std::string> queryParams; // example: ?userId=123&bookId=456
+    std::unordered_map<std::string, std::string> pathParams;  // example: /users/123/books/456
 
   public:
     // Getters
@@ -42,7 +43,8 @@ class Request {
     std::string getBody() const;
     std::string getHead() const;
     std::string getMessage() const;
-    std::unordered_map<std::string, std::string> getParams() const;
+    std::unordered_map<std::string, std::string> getQueryParams() const;
+    std::unordered_map<std::string, std::string> getPathParams() const;
 
     // Setters
     void setMethod(const std::string &newMethod);
@@ -53,10 +55,12 @@ class Request {
     void setHead(const std::string &newHead);
     void setMessage(const std::string &newMessage);
     void setParams(const std::string &queryString);
+    void setPathParams(const std::string &routePattern, const std::string &requestUri);
 
     // Helper Methods
     std::string returnParamValue(const std::string &paramKey) const;
     std::string contentLength() const;
+    std::vector<std::string> split_path(const std::string &path, char delimiter = '/');
 
     // Utility to get specific header value by name
     std::string getHeaderValue(const std::string &name) const;

@@ -40,12 +40,10 @@ class HttpServer {
     void handleResponse(int client_socket);
     void acceptConnections();
 
-    std::string routeMethod; // GET PUT POST DELETE method per created route
-
     // request & response
     Request httpRequest;
     Response httpResponse;
-    bool checkRoutes();
+    bool check_routes();
     bool is_route_match(const std::string &routePattern, const std::string &requestUri);
     std::map<std::string, std::function<void(Request &, Response &)>> routes;
     std::map<std::string, std::string> method_route_pair;

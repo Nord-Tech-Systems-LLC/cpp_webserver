@@ -1,18 +1,25 @@
 #include "cpp_webserver_include/core.hpp"
+#include <iostream>
 #include <string>
 
 // TODO:
-// - bug with setting headers on request from main.cpp
+// - change logic to allow uppercase letters in pathParams
+// - fix refusing when method doesn't match request
 
 int main() {
-    // HttpServer server("127.0.0.1", "8080");
-
     HttpServer server("127.0.0.1", "8080");
 
     server.get("/", [](Request &req, Response &res) { res.send("Hello, world!"); });
 
-    server.get("/json/:userId/user/:bookId",
-               [](Request &req, Response &res) { res.json("{\"message\": \"Hello, JSON\"}"); });
+    server.get("/json/:userId/user/:bookId", [](Request &req, Response &res) {
+        std::string userId = req.getPathParams().at(":userid");
+        std::string bookId = req.getPathParams().at(":bookid");
+
+        // Construct a JSON response string
+        std::string json = "{\"userId\": \"" + userId + "\", \"bookId\": \"" + bookId + "\"}";
+
+        res.json(json);
+    });
 
     server.post("/submit", [](Request &req, Response &res) {
         // Handle POST data
