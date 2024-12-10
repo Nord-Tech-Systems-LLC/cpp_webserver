@@ -345,24 +345,30 @@ bool HttpServer::check_routes() {
     try {
         std::string request_route = httpRequest.getUri();
 
-        logger::log("Received route \"" + request_route + "\"");
+        // catch all for routes not to be too long
+        if (request_route.length() > 2048) {
+            logger::error("Route is too long, please try again.");
+            return false;
+        };
 
-        // check method matches expected
-        for (const auto &route : method_route_pair) {
-            if (route.first == request_route) {
-                if (route.second != httpRequest.getMethod()) {
-                    logger::error("Incorrect API request method: " + httpRequest.getMethod() +
-                                  " Expected: " + route.second);
-                    return false;
-                }
-            }
-        }
+        logger::log("Received route \"" + request_route + "\"");
 
         // find route template created at beginning routes
         for (const auto &route : routes) {
             if (is_route_match(route.first, request_route)) {
                 route_template = route.first;
                 httpRequest.setPathParams(route_template, request_route);
+            }
+        }
+
+        // check method matches expected
+        for (const auto &route : method_route_pair) {
+            if (route.first == route_template) {
+                if (route.second != httpRequest.getMethod()) {
+                    logger::error("Incorrect API request method: " + httpRequest.getMethod() +
+                                  " Expected: " + route.second);
+                    return false;
+                }
             }
         }
 

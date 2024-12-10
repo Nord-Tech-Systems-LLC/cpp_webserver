@@ -3,8 +3,7 @@
 #include <string>
 
 // TODO:
-// - change logic to allow uppercase letters in pathParams
-// - fix refusing when method doesn't match request
+// - Check body params are working
 
 int main() {
     HttpServer server("127.0.0.1", "8080");
