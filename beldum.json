@@ -2,7 +2,7 @@
     "name": "",
     "version": "1.0.0",
     "scripts": {
-        "build": "./build.sh",
+        "build": "./scripts/build.sh",
         "clean": "rm -rf ./target/debug/build",
         "execute": "./target/debug/build/cpp_webserver_run"
     },

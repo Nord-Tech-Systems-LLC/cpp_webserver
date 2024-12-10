@@ -13,7 +13,6 @@ int main() {
     server.get("/json/:userId/user/:bookId", [](Request &req, Response &res) {
         std::string userId = req.getPathParams().at(":userid");
         std::string bookId = req.getPathParams().at(":bookid");
-
         // Construct a JSON response string
         std::string json = "{\"userId\": \"" + userId + "\", \"bookId\": \"" + bookId + "\"}";
 
