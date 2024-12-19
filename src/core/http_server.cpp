@@ -226,33 +226,48 @@ void HttpServer::handleRequest(int client_socket) {
     char buffer[3060];
     memset(buffer, 0, sizeof(buffer)); // resetting buffer between requests
 
-    std::string requestMessage = readSocket(client_socket);
+    httpRequest.reset();  // reset data
+    httpResponse.reset(); // reset data
 
+    std::string requestMessage = readSocket(client_socket);
     httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
 
     // print request
     std::cout << "HTTP REQUEST MESSAGE: \n"
               << httpRequest.getMessage() << std::endl; // Log the raw request message
 
-    // Extract the method, URI, and HTTP version (can be extracted from the message directly)
+    // extract the method, URI, and HTTP version (can be extracted from the message directly)
     size_t method_end = httpRequest.getMessage().find(" ");
     size_t uri_end = httpRequest.getMessage().find(" ", method_end + 1);
     size_t proto_end = httpRequest.getMessage().find("\r\n", uri_end + 1);
 
-    // Ensure each part is found
+    // ensure each part is found
     if (method_end == std::string::npos || uri_end == std::string::npos ||
         proto_end == std::string::npos) {
-        throw std::invalid_argument("Malformed request line");
+        std::string response =
+            httpResponse.buildResponse("400 Bad Request",
+                                       {{"Content-Type", "text/plain"}, {"Connection", "close"}},
+                                       "Malformed request line");
+
+        sendSocket(client_socket, response.c_str());
+        closeSocket(client_socket);
+        return; // stop processing this request
     }
 
-    httpRequest.setMethod(httpRequest.getMessage().substr(0, method_end));
-    httpRequest.setUri(httpRequest.getMessage().substr(method_end + 1, uri_end - method_end - 1));
-    httpRequest.setProto(httpRequest.getMessage().substr(uri_end + 1, proto_end - uri_end - 1));
+    // extract method, URI, and HTTP version
+    std::string method = httpRequest.getMessage().substr(0, method_end);
+    std::string uri = httpRequest.getMessage().substr(method_end + 1, uri_end - method_end - 1);
+    std::string proto = httpRequest.getMessage().substr(uri_end + 1, proto_end - uri_end - 1);
 
-    // Set headers by parsing request
+    // set the values in the HttpRequest object
+    httpRequest.setMethod(method);
+    httpRequest.setUri(uri);
+    httpRequest.setProto(proto);
+
+    // set headers by parsing request
     std::vector<HttpHeader> newHeaders = {};
     extractHttpHeader(newHeaders, httpRequest.getMessage());
-    httpRequest.setHeaders(newHeaders);          // Setting headers after each request
+    httpRequest.setHeaders(newHeaders);          // setting headers after each request
     httpRequest.setParams("");                   // resetting params after each request
     httpRequest.setParams(httpRequest.getUri()); // parse url params and set them for the request
     httpResponse.setRequestMethod(
@@ -325,33 +340,34 @@ void HttpServer::acceptConnections() {
         }
 
         // start a new thread for each connection
-        std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        client_thread.detach(); // detach the thread to allow it to run independently
+        handleRequest(client_socket);
+        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
+        // client_thread.detach(); // detach the thread to allow it to run independently
     }
 }
 
 bool HttpServer::is_route_match(const std::string &routePattern, const std::string &requestUri) {
-    // Split the route pattern and request URI into segments
+    // split the route pattern and request URI into segments
     auto routeSegments = httpRequest.split_path(routePattern);
     auto requestSegments = httpRequest.split_path(requestUri);
 
-    // If the number of segments doesn't match, the route doesn't match
+    // if the number of segments doesn't match, the route doesn't match
     if (routeSegments.size() != requestSegments.size()) {
         return false;
     }
 
-    // Check each segment for a match
+    // check each segment for a match
     for (size_t i = 0; i < routeSegments.size(); ++i) {
         if (routeSegments[i].front() == ':') {
-            // If the route segment starts with ':', treat it as a wildcard
+            // if the route segment starts with ':', treat it as a wildcard
             continue;
         } else if (routeSegments[i] != requestSegments[i]) {
-            // If the segments don't match, return false
+            // if the segments don't match, return false
             return false;
         }
     }
 
-    // All segments match
+    // all segments match
     return true;
 }
 

@@ -33,6 +33,11 @@ void Response::setStatusMessage(std::string newStatusMessage) {
     statusMessage = newStatusMessage;
 }
 
+void Response::setSingleHeader(const std::string &headerName, const std::string &headerValue) {
+    // Set the single header in the map
+    headers[headerName] = headerValue;
+}
+
 void Response::setHeaders(std::map<std::string, std::string> newHeaders) {
     headers = newHeaders;
 }
@@ -52,7 +57,7 @@ std::string Response::contentLength(const std::string &input_body) {
 };
 
 void Response::json(const std::string &jsonResponse) {
-    setHeaders({{"Content-Type", "application/json"}, {"Access-Control-Allow-Origin", "*"}});
+    setSingleHeader("Content-Type", "application/json");
     send(jsonResponse);
 }
 
@@ -89,4 +94,12 @@ std::string Response::buildResponse(const std::string &status,
     response += body;
 
     return response;
+}
+
+void Response::reset() {
+    statusCode = 0;        // Reset status code to a default value
+    statusMessage.clear(); // Clear status message
+    headers.clear();       // Clear all headers
+    body.clear();          // Clear response body
+    requestMethod.clear(); // Clear request method
 }

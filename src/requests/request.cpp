@@ -134,3 +134,17 @@ std::vector<std::string> Request::split_path(const std::string &path, char delim
 
     return segments;
 }
+
+// Reset function implementation
+void Request::reset() {
+    method.clear();
+    uri.clear();
+    query.clear();
+    proto.clear();
+    headers.clear();
+    body.clear();
+    head.clear();
+    message.clear();
+    queryParams.clear();
+    pathParams.clear();
+}

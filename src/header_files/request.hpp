@@ -64,6 +64,9 @@ class Request {
 
     // Utility to get specific header value by name
     std::string getHeaderValue(const std::string &name) const;
+
+    // Reset function
+    void reset();
 };
 
 #endif

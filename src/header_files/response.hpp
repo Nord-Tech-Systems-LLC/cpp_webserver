@@ -27,6 +27,7 @@ class Response {
     void setStatusCode(int newStatusCode);
     void setStatusMessage(std::string newStatusMessage);
     void setHeaders(std::map<std::string, std::string> newHeaders);
+    void setSingleHeader(const std::string &headerName, const std::string &headerValue);
     void setBody(std::string newBody);
     void setRequestMethod(std::string newRequestMethod);
 
@@ -39,6 +40,9 @@ class Response {
     void send(const std::string &content);
     void json(const std::string &jsonResponse);
     Response &status(int code);
+
+    // reset method
+    void reset();
 };
 
 #endif
