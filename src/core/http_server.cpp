@@ -159,12 +159,20 @@ std::string extractMainRoute(const std::string &url) {
     }
 }
 
+void closeSocket(int client_socket) {
+#ifdef __linux__
+    close(client_socket);
+#elif _WIN32
+    closesocket(client_socket);
+#endif
+}
+
 void HttpServer::handleRequest(int client_socket) {
     auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
 
     std::cout.flush();
     char buffer[3060];
-    memset(buffer, 0, 3060); // resetting buffer between requests
+    memset(buffer, 0, sizeof(buffer)); // resetting buffer between requests
 
     int byte_count_transfer = 0;
 #ifdef __linux__
@@ -214,15 +222,19 @@ void HttpServer::handleRequest(int client_socket) {
 
     if (check_routes()) {
         // if route exists
+
+        // for (auto element : routes) {
+        //     std::cout << "Element.first: " << element.first << std::endl;
+        //     // std::cout << "Element.second: "
+        //     //           << std::to_string(element.second(httpRequest, httpResponse)) <<
+        //     std::endl;
+        // }
         routes.find(route_template)->second(httpRequest, httpResponse);
+
         handleResponse(client_socket);
 
-// close the server socket
-#ifdef __linux__
-        close(client_socket);
-#elif _WIN32
-        closesocket(client_socket);
-#endif
+        // close the server socket
+        closeSocket(client_socket);
     } else {
         // if route doesn't exist
         logger::error("client_socket " + std::to_string(client_socket) +
@@ -242,12 +254,8 @@ void HttpServer::handleRequest(int client_socket) {
         httpResponse.setBody(response);
         handleResponse(client_socket);
 
-// close the server socket
-#ifdef __linux__
-        close(client_socket);
-#elif _WIN32
-        closesocket(client_socket);
-#endif
+        // close the server socket
+        closeSocket(client_socket);
     }
 
     // stop timer and calculate duration
@@ -379,6 +387,7 @@ bool HttpServer::check_routes() {
         // find route template created at beginning routes
         for (const auto &route : routes) {
             if (is_route_match(route.first, request_route)) {
+
                 return true;
             }
         }

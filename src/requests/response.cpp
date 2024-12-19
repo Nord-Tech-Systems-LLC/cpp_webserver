@@ -72,6 +72,7 @@ std::string Response::buildResponse(const std::string &responseStatus,
                                     const std::string &responseContent) {
     std::string responseLength = contentLength(responseContent);
     headers["Content-Length"] = responseLength;
+    headers["Access-Control-Allow-Origin"] = "*";
     std::ostringstream response;
 
     // append HTTP headers
