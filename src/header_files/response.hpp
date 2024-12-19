@@ -32,8 +32,9 @@ class Response {
 
     // helper methods
     std::string contentLength(const std::string &input_body);
-    std::string buildResponse(const std::string &responseStatus,
-                              const std::string &responseContent);
+    std::string buildResponse(const std::string &status,
+                              const std::map<std::string, std::string> &headers,
+                              const std::string &body);
 
     void send(const std::string &content);
     void json(const std::string &jsonResponse);

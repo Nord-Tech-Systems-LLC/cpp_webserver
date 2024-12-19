@@ -167,6 +167,58 @@ void closeSocket(int client_socket) {
 #endif
 }
 
+std::string readSocket(int client_socket) {
+    std::string data;
+    char buffer[4096];
+
+#ifdef __linux__
+    ssize_t bytes_read;
+#elif _WIN32
+    SSIZE_T bytes_read;
+#endif
+
+    while (true) {
+        memset(buffer, 0, sizeof(buffer));
+        bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytes_read < 0) {
+            throw std::runtime_error("Error reading from socket");
+        } else if (bytes_read == 0) {
+            // End of stream
+            break;
+        }
+
+        data.append(buffer, bytes_read);
+
+        // Check for end of HTTP request (empty line after headers)
+        if (data.find("\r\n\r\n") != std::string::npos) {
+            break;
+        }
+    }
+
+    return data;
+}
+
+void sendSocket(int client_socket, const std::string &data) {
+    size_t totalBytesSent = 0;
+    size_t dataSize = data.size();
+
+    while (totalBytesSent < dataSize) {
+
+#ifdef __linux__
+        ssize_t bytesSent;
+#elif _WIN32
+        SSIZE_T bytesSent;
+#endif
+        bytesSent =
+            send(client_socket, data.c_str() + totalBytesSent, dataSize - totalBytesSent, 0);
+        if (bytesSent < 0) {
+            throw std::runtime_error("Error sending data to socket");
+        }
+        totalBytesSent += bytesSent;
+    }
+}
+
 void HttpServer::handleRequest(int client_socket) {
     auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
 
@@ -174,24 +226,13 @@ void HttpServer::handleRequest(int client_socket) {
     char buffer[3060];
     memset(buffer, 0, sizeof(buffer)); // resetting buffer between requests
 
-    int byte_count_transfer = 0;
-#ifdef __linux__
-    ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    do {
-        byte_count_transfer++;
-    } while (byte_count_transfer <= bytes_read);
-#elif _WIN32
-    SSIZE_T bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    do {
-        byte_count_transfer++;
-    } while (byte_count_transfer <= bytes_read);
-#endif
+    std::string requestMessage = readSocket(client_socket);
 
-    httpRequest.setMessage(
-        std::string(buffer, bytes_read)); // Store the request message in the HttpMessage struct
+    httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
 
     // print request
-    std::cout << httpRequest.getMessage() << std::endl; // Log the raw request message
+    std::cout << "HTTP REQUEST MESSAGE: \n"
+              << httpRequest.getMessage() << std::endl; // Log the raw request message
 
     // Extract the method, URI, and HTTP version (can be extracted from the message directly)
     size_t method_end = httpRequest.getMessage().find(" ");
@@ -222,15 +263,7 @@ void HttpServer::handleRequest(int client_socket) {
 
     if (check_routes()) {
         // if route exists
-
-        // for (auto element : routes) {
-        //     std::cout << "Element.first: " << element.first << std::endl;
-        //     // std::cout << "Element.second: "
-        //     //           << std::to_string(element.second(httpRequest, httpResponse)) <<
-        //     std::endl;
-        // }
         routes.find(route_template)->second(httpRequest, httpResponse);
-
         handleResponse(client_socket);
 
         // close the server socket
@@ -241,16 +274,11 @@ void HttpServer::handleRequest(int client_socket) {
                       " -- route does not exist...");
 
         // set headers
-        httpResponse.setHeaders({{"Content-Type", "text/html"},
-                                 {"Connection", "keep-alive"},
-                                 {
-                                     "Accept-Encoding",
-                                     "gzip, deflate, br",
-                                 }});
-
+        httpResponse.setHeaders({{"Content-Type", "text/html"}, {"Connection", "close"}});
         // error response
         std::string errorResponse = "Route does not exist!";
-        std::string response = httpResponse.buildResponse("400 Bad Request", errorResponse);
+        std::string response =
+            httpResponse.buildResponse("400 Bad Request", httpResponse.getHeaders(), errorResponse);
         httpResponse.setBody(response);
         handleResponse(client_socket);
 
@@ -274,29 +302,7 @@ void HttpServer::handleResponse(int client_socket) {
     }
     std::cout << std::endl;
 
-    // while bytes_written is less than byte_count_transfer
-    int byte_count_transfer = 0;
-    // logger::log("Response Body: " + httpResponse.getBody());
-
-#ifdef __linux__
-    // send response to client socket
-    ssize_t bytes_sent = send(
-        client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
-    do {
-        byte_count_transfer++;
-    } while (byte_count_transfer <= bytes_sent);
-    logger::log("Sent response to client socket " + std::to_string(client_socket));
-
-#elif _WIN32
-    // send response to client socket
-    SSIZE_T bytes_sent = send(
-        client_socket, httpResponse.getBody().c_str(), strlen(httpResponse.getBody().c_str()), 0);
-    do {
-        byte_count_transfer++;
-    } while (byte_count_transfer <= bytes_sent);
-    logger::log("Sent response to client socket " + std::to_string(client_socket));
-
-#endif
+    sendSocket(client_socket, httpResponse.getBody().c_str());
 }
 
 void HttpServer::acceptConnections() {
