@@ -222,12 +222,9 @@ void sendSocket(int client_socket, const std::string &data) {
 void HttpServer::handleRequest(int client_socket) {
     auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
 
-    std::cout.flush();
-    char buffer[3060];
-    memset(buffer, 0, sizeof(buffer)); // resetting buffer between requests
-
-    httpRequest.reset();  // reset data
-    httpResponse.reset(); // reset data
+    // reset request / response data
+    httpRequest.reset();
+    httpResponse.reset();
 
     std::string requestMessage = readSocket(client_socket);
     httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
