@@ -217,6 +217,9 @@ void sendSocket(int client_socket, const std::string &data) {
         }
         totalBytesSent += bytesSent;
     }
+
+    // close the server socket
+    closeSocket(client_socket);
 }
 
 void HttpServer::handleRequest(int client_socket) {
@@ -246,8 +249,8 @@ void HttpServer::handleRequest(int client_socket) {
                                        {{"Content-Type", "text/plain"}, {"Connection", "close"}},
                                        "Malformed request line");
 
-        sendSocket(client_socket, response.c_str());
-        closeSocket(client_socket);
+        httpResponse.setBody(response);
+        handleResponse(client_socket);
         return; // stop processing this request
     }
 
@@ -278,8 +281,6 @@ void HttpServer::handleRequest(int client_socket) {
         routes.find(route_template)->second(httpRequest, httpResponse);
         handleResponse(client_socket);
 
-        // close the server socket
-        closeSocket(client_socket);
     } else {
         // if route doesn't exist
         logger::error("client_socket " + std::to_string(client_socket) +
@@ -293,9 +294,6 @@ void HttpServer::handleRequest(int client_socket) {
             httpResponse.buildResponse("400 Bad Request", httpResponse.getHeaders(), errorResponse);
         httpResponse.setBody(response);
         handleResponse(client_socket);
-
-        // close the server socket
-        closeSocket(client_socket);
     }
 
     // stop timer and calculate duration
