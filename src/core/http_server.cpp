@@ -1,5 +1,4 @@
 #include "cpp_webserver_include/core.hpp"
-#include "threaded_coroutines.cpp"
 
 #ifdef __linux__
 // linux libraries
@@ -336,9 +335,11 @@ void HttpServer::acceptConnections() {
         }
 
         // start a new thread for each connection
-        threaded_coroutines::Coroutine coroutine([&]() { handleRequest(client_socket); });
-        coroutine.wait();
-        threaded_coroutines::yield(); // Yield after each iteration
+        threaded_coroutines::Coroutine coroutine([&]() {
+            handleRequest(client_socket);
+            coroutine.wait();
+            threaded_coroutines::yield(); // Yield after each iteration
+        });
 
         // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
         // client_thread.detach(); // detach the thread to allow it to run independently
