@@ -4,6 +4,15 @@
 
 // TODO:
 // - Check body params are working
+// - modify query params and path params variables to be query params and template route variable
+// names
+// - Add status code lookup tables
+
+// explanations:
+// - Query Params -- add http://localhost:8080/json?test=testing&test2=testing
+// - Query template route -- add http://localhost:8080/json/{template_route}/data
+// - Fragments -- add http://localhost:8080/json#fragment -- is not sent to the server, it is
+// primarily for the client browser
 
 int main() {
     HttpServer server("127.0.0.1", "8080");

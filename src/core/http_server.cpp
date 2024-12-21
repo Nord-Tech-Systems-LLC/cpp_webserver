@@ -340,9 +340,6 @@ void HttpServer::acceptConnections() {
             coroutine.wait();
             threaded_coroutines::yield(); // Yield after each iteration
         });
-
-        // std::thread client_thread(&HttpServer::handleRequest, this, client_socket);
-        // client_thread.detach(); // detach the thread to allow it to run independently
     }
 }
 
