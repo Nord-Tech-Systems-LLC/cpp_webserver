@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef REQUEST_H
 #define REQUEST_H
 

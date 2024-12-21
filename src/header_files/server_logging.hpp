@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LOGGING_HPP
+#define LOGGING_HPP
 
 #include <iostream>
 #include <string>
@@ -23,3 +24,5 @@ void error(const std::string &errorMessage, const char *functionName = __builtin
 void section(const std::string &errorMessage, const char *functionName = __builtin_FUNCTION());
 
 } // namespace logger
+
+#endif // MY_CUSTOM_EXCEPTION_HPP
