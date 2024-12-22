@@ -57,17 +57,35 @@ void Request::setMessage(const std::string &newMessage) {
 }
 
 // Parses a query string and stores each parameter in queryParams
-void Request::setParams(const std::string &queryString) {
+void Request::setParams(const std::string &uri) {
     queryParams.clear();
+
+    // Find the query string (after the '?')
+    size_t questionMarkPos = uri.find('?');
+    if (questionMarkPos == std::string::npos || questionMarkPos + 1 >= uri.size()) {
+        return; // No query string to parse or query string is empty
+    }
+
+    std::string queryString = uri.substr(questionMarkPos + 1);
+
     std::istringstream stream(queryString);
     std::string pair;
 
+    // Parse key-value pairs
     while (std::getline(stream, pair, '&')) {
+        if (pair.empty())
+            continue; // Skip empty pairs
+
         size_t pos = pair.find('=');
         if (pos != std::string::npos) {
+            // Key and value present
             std::string key = pair.substr(0, pos);
             std::string value = pair.substr(pos + 1);
             queryParams[key] = value;
+        } else {
+            // Handle keys with no values (e.g., "key&key2=value2")
+            std::string key = pair;
+            queryParams[key] = "";
         }
     }
 }

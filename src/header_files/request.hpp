@@ -53,7 +53,7 @@ class Request {
     void setBody(const std::string &newBody);
     void setHead(const std::string &newHead);
     void setMessage(const std::string &newMessage);
-    void setParams(const std::string &queryString);
+    void setParams(const std::string &uri);
     void setRouteTemplateParams(const std::string &routePattern, const std::string &requestUri);
 
     // Helper Methods
