@@ -29,7 +29,8 @@ class Request {
 
     // Parsed query and path parameters for easier access
     std::unordered_map<std::string, std::string> queryParams; // example: ?userId=123&bookId=456
-    std::unordered_map<std::string, std::string> pathParams;  // example: /users/123/books/456
+    std::unordered_map<std::string, std::string>
+        routeTemplateParams; // example: /users/123/books/456
 
   public:
     // Getters
@@ -42,7 +43,7 @@ class Request {
     std::string getHead() const;
     std::string getMessage() const;
     std::unordered_map<std::string, std::string> getQueryParams() const;
-    std::unordered_map<std::string, std::string> getPathParams() const;
+    std::unordered_map<std::string, std::string> getRouteTemplateParams() const;
 
     // Setters
     void setMethod(const std::string &newMethod);
@@ -53,7 +54,7 @@ class Request {
     void setHead(const std::string &newHead);
     void setMessage(const std::string &newMessage);
     void setParams(const std::string &queryString);
-    void setPathParams(const std::string &routePattern, const std::string &requestUri);
+    void setRouteTemplateParams(const std::string &routePattern, const std::string &requestUri);
 
     // Helper Methods
     std::string returnParamValue(const std::string &paramKey) const;

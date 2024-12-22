@@ -29,8 +29,8 @@ std::string Request::getMessage() const {
 std::unordered_map<std::string, std::string> Request::getQueryParams() const {
     return queryParams;
 }
-std::unordered_map<std::string, std::string> Request::getPathParams() const {
-    return pathParams;
+std::unordered_map<std::string, std::string> Request::getRouteTemplateParams() const {
+    return routeTemplateParams;
 }
 
 // Setters
@@ -73,8 +73,9 @@ void Request::setParams(const std::string &queryString) {
 }
 
 // Parses a query string and stores each parameter in queryParams
-void Request::setPathParams(const std::string &routePattern, const std::string &requestUri) {
-    pathParams.clear();
+void Request::setRouteTemplateParams(const std::string &routePattern,
+                                     const std::string &requestUri) {
+    routeTemplateParams.clear();
 
     // Split the route pattern and request URI into segments
     auto routeSegments = split_path(routePattern);
@@ -88,7 +89,7 @@ void Request::setPathParams(const std::string &routePattern, const std::string &
     for (size_t i = 0; i < routeSegments.size(); ++i) {
         if (routeSegments[i].front() == ':') {
             // If the route segment starts with ':', treat it as a wildcard
-            pathParams[routeSegments[i]] = requestSegments[i];
+            routeTemplateParams[routeSegments[i]] = requestSegments[i];
             continue;
         } else if (routeSegments[i] != requestSegments[i]) {
             // If the segments don't match, return false
@@ -146,5 +147,5 @@ void Request::reset() {
     head.clear();
     message.clear();
     queryParams.clear();
-    pathParams.clear();
+    routeTemplateParams.clear();
 }

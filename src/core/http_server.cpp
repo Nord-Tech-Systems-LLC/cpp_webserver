@@ -380,7 +380,7 @@ bool HttpServer::check_routes() {
         for (const auto &route : routes) {
             if (is_route_match(route.first, request_route)) {
                 route_template = route.first;
-                httpRequest.setPathParams(route_template, request_route);
+                httpRequest.setRouteTemplateParams(route_template, request_route);
             }
         }
 

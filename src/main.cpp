@@ -4,9 +4,6 @@
 
 // TODO:
 // - Check body params are working
-// - modify query params and path params variables to be query params and template route variable
-// names
-// - Add status code lookup tables
 
 // explanations:
 // - Query Params -- add http://localhost:8080/json?test=testing&test2=testing
@@ -22,8 +19,8 @@ int main() {
     server.get("/json/:page/:limit", [&](Request &req, Response &res) {
         try {
             // Validate the path parameters
-            int page = std::stoi(req.getPathParams().at(":page"));
-            int limit = std::stoi(req.getPathParams().at(":limit"));
+            int page = std::stoi(req.getRouteTemplateParams().at(":page"));
+            int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
 
             // Further validation on page and limit
             if (page <= 0) {
