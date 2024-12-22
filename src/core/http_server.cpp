@@ -222,6 +222,20 @@ void sendSocket(int client_socket, const std::string &data) {
     closeSocket(client_socket);
 }
 
+// Add new middleware method that takes a map of headers
+void HttpServer::middleware(const std::map<std::string, std::string> &headers) {
+    globalHeaders = headers;
+
+    // Create middleware function to apply headers
+    auto headerMiddleware = [headers](Request &req, Response &res) {
+        for (const auto &header : headers) {
+            res.setSingleHeader(header.first, header.second);
+        }
+    };
+
+    middlewareStack.push_back(headerMiddleware);
+}
+
 void HttpServer::handleRequest(int client_socket) {
     auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
 
@@ -231,6 +245,11 @@ void HttpServer::handleRequest(int client_socket) {
 
     std::string requestMessage = readSocket(client_socket);
     httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
+
+    // apply all middleware before handling the route
+    for (const auto &middleware : middlewareStack) {
+        middleware(httpRequest, httpResponse);
+    }
 
     // print request
     std::cout << "HTTP REQUEST MESSAGE: \n"

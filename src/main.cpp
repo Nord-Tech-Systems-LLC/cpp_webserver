@@ -14,6 +14,8 @@
 int main() {
     HttpServer server("127.0.0.1", "8080");
 
+    server.middleware({{"Access-Control-Allow-Origin", "*"}, {"Content-Type", "application/json"}});
+
     server.get("/", [](Request &req, Response &res) { res.status(201).send("Hello, world!"); });
 
     server.get("/json/:page/:limit", [&](Request &req, Response &res) {

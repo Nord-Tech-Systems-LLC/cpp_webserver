@@ -23,6 +23,7 @@ class HttpServer {
     void get(const std::string &route, std::function<void(Request &, Response &)> handler);
     void post(const std::string &route, std::function<void(Request &, Response &)> handler);
     void put(const std::string &route, std::function<void(Request &, Response &)> handler);
+    void middleware(const std::map<std::string, std::string> &headers);
 
   private:
     const char *port;
@@ -46,6 +47,8 @@ class HttpServer {
     std::map<std::string, std::function<void(Request &, Response &)>> routes;
     std::map<std::string, std::string> method_route_pair;
     std::string route_template;
+    std::vector<std::function<void(Request &, Response &)>> middlewareStack;
+    std::map<std::string, std::string> globalHeaders;
 
     // map to store method, route, and http version
     void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
