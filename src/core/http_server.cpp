@@ -244,12 +244,10 @@ void HttpServer::handleRequest(int client_socket) {
     // ensure each part is found
     if (method_end == std::string::npos || uri_end == std::string::npos ||
         proto_end == std::string::npos) {
-        std::string response =
-            httpResponse.buildResponse("400 Bad Request",
-                                       {{"Content-Type", "text/plain"}, {"Connection", "close"}},
-                                       "Malformed request line");
 
-        httpResponse.setBody(response);
+        std::string error_message = "Malformed request line";
+        httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
+        httpResponse.status(400).send(error_message);
         handleResponse(client_socket);
         return; // stop processing this request
     }
@@ -290,9 +288,7 @@ void HttpServer::handleRequest(int client_socket) {
         httpResponse.setHeaders({{"Content-Type", "text/html"}, {"Connection", "close"}});
         // error response
         std::string errorResponse = "Route does not exist!";
-        std::string response =
-            httpResponse.buildResponse("400 Bad Request", httpResponse.getHeaders(), errorResponse);
-        httpResponse.setBody(response);
+        httpResponse.status(400).send(errorResponse);
         handleResponse(client_socket);
     }
 

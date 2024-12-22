@@ -5,11 +5,11 @@
 
 // getters
 int Response::getStatusCode() const {
-    return statusCode;
+    return status_code;
 }
 
 std::string Response::getStatusMessage() const {
-    return statusMessage;
+    return status_message;
 }
 
 std::map<std::string, std::string> Response::getHeaders() const {
@@ -26,11 +26,11 @@ std::string Response::getRequestMethod() const {
 
 // setters
 void Response::setStatusCode(int newStatusCode) {
-    statusCode = newStatusCode;
+    status_code = newStatusCode;
 }
 
 void Response::setStatusMessage(std::string newStatusMessage) {
-    statusMessage = newStatusMessage;
+    status_message = newStatusMessage;
 }
 
 void Response::setSingleHeader(const std::string &headerName, const std::string &headerValue) {
@@ -63,13 +63,23 @@ void Response::json(const std::string &jsonResponse) {
 
 void Response::send(const std::string &content) {
     // Logic to send plain text or HTML
-    std::string response = buildResponse("200 OK", headers, content);
+    std::string response = buildResponse(
+        std::to_string(status_code) + " " + std::string(status_message), headers, content);
     body = response;
 }
 
 Response &Response::status(int code) {
     // Set HTTP status code
-    statusCode = code;
+    status_code = code;
+
+    // Find the corresponding status message
+    auto it = http_status_codes.find(code);
+    if (it != http_status_codes.end()) {
+        status_message = it->second; // Set the message if found
+    } else {
+        throw std::invalid_argument("Invalid HTTP status code.");
+    }
+
     return *this;
 }
 
@@ -97,9 +107,9 @@ std::string Response::buildResponse(const std::string &status,
 }
 
 void Response::reset() {
-    statusCode = 0;        // Reset status code to a default value
-    statusMessage.clear(); // Clear status message
-    headers.clear();       // Clear all headers
-    body.clear();          // Clear response body
-    requestMethod.clear(); // Clear request method
+    status_code = 0;        // Reset status code to a default value
+    status_message.clear(); // Clear status message
+    headers.clear();        // Clear all headers
+    body.clear();           // Clear response body
+    requestMethod.clear();  // Clear request method
 }

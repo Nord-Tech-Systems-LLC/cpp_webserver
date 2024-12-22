@@ -7,8 +7,8 @@
 
 class Response {
   private:
-    int statusCode;
-    std::string statusMessage;
+    int status_code;
+    std::string status_message;
     std::map<std::string, std::string> headers;
     std::string body;
     std::string requestMethod;
