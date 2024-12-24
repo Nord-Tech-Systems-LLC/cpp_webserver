@@ -24,6 +24,10 @@ int main() {
             int page = std::stoi(req.getRouteTemplateParams().at(":page"));
             int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
 
+            std::cout << std::endl;
+            std::cout << "Body: " << req.getBody() << std::endl;
+            std::cout << std::endl;
+
             // Further validation on page and limit
             if (page <= 0) {
                 throw std::invalid_argument("Invalid page value.");

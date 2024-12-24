@@ -271,6 +271,20 @@ void HttpServer::handleRequest(int client_socket) {
         return; // stop processing this request
     }
 
+    // find the body of the request
+    size_t body_start = httpRequest.getMessage().find("\r\n\r\n");
+    if (body_start != std::string::npos) {
+        // the body starts after the "\r\n\r\n" sequence
+        std::string body = httpRequest.getMessage().substr(body_start + 4);
+
+        // set the body in the HttpRequest object
+        httpRequest.setBody(body);
+
+    } else {
+        // if there's no body in the request, set it to an empty string
+        httpRequest.setBody("");
+    }
+
     // extract method, URI, and HTTP version
     std::string method = httpRequest.getMessage().substr(0, method_end);
     std::string uri = httpRequest.getMessage().substr(method_end + 1, uri_end - method_end - 1);
