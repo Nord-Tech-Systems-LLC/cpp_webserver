@@ -3,7 +3,7 @@
 #include <string>
 
 // TODO:
-// - Check body params are working
+// - Create cookie functionality
 
 // explanations:
 // - Query Params -- add http://localhost:8080/json?test=testing&test2=testing
