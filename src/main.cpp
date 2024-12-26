@@ -25,6 +25,13 @@ int main() {
             int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
 
             std::cout << std::endl;
+            std::cout << "Query Params: " << std::endl;
+            for (auto element : req.getQueryParams()) {
+                std::cout << element.first << " " << element.second << std::endl;
+            }
+            std::cout << std::endl;
+
+            std::cout << std::endl;
             std::cout << "Body: " << req.getBody() << std::endl;
             std::cout << std::endl;
 

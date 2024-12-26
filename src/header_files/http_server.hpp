@@ -16,10 +16,6 @@ class HttpServer {
     void printRoutes();
 
     // dispatch events
-    void addRoute(const std::string &method,
-                  const std::string &route,
-                  std::function<void(Request &, Response &)> handler);
-
     void get(const std::string &route, std::function<void(Request &, Response &)> handler);
     void post(const std::string &route, std::function<void(Request &, Response &)> handler);
     void put(const std::string &route, std::function<void(Request &, Response &)> handler);
@@ -40,15 +36,9 @@ class HttpServer {
     void acceptConnections();
 
     // request & response
+    Router router;
     Request httpRequest;
     Response httpResponse;
-    bool check_routes();
-    bool is_route_match(const std::string &routePattern, const std::string &requestUri);
-    std::map<std::string, std::function<void(Request &, Response &)>> routes;
-    std::map<std::string, std::string> method_route_pair;
-    std::string route_template;
-    std::vector<std::function<void(Request &, Response &)>> middlewareStack;
-    std::map<std::string, std::string> globalHeaders;
 
     // map to store method, route, and http version
     void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);

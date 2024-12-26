@@ -52,22 +52,6 @@ void HttpServer::start() {
 #endif
 }
 
-void HttpServer::addRoute(const std::string &method,
-                          const std::string &route,
-                          std::function<void(Request &, Response &)> handler) {
-    // convert route to lowercase
-    std::string lowerCaseRoute = route;
-
-    transform(
-        lowerCaseRoute.begin(), lowerCaseRoute.end(), lowerCaseRoute.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-    int route_index = 0;
-    method_route_pair[lowerCaseRoute] = method;
-    routes[lowerCaseRoute] = handler;
-}
-
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
     switch (sa->sa_family) {
@@ -91,11 +75,7 @@ char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) 
 }
 
 void HttpServer::printRoutes() {
-    logger::log("Possible Routes:");
-    for (const auto &pair : routes) {
-        std::cout << pair.first << "\n";
-    }
-    std::cout << std::endl;
+    router.printRoutes();
 }
 
 bool HttpServer::createSocket() {
@@ -224,16 +204,11 @@ void sendSocket(int client_socket, const std::string &data) {
 
 // Add new middleware method that takes a map of headers
 void HttpServer::middleware(const std::map<std::string, std::string> &headers) {
-    globalHeaders = headers;
-
-    // Create middleware function to apply headers
-    auto headerMiddleware = [headers](Request &req, Response &res) {
+    router.use([headers](Request &req, Response &res) {
         for (const auto &header : headers) {
             res.setSingleHeader(header.first, header.second);
         }
-    };
-
-    middlewareStack.push_back(headerMiddleware);
+    });
 }
 
 void HttpServer::handleRequest(int client_socket) {
@@ -245,11 +220,6 @@ void HttpServer::handleRequest(int client_socket) {
 
     std::string requestMessage = readSocket(client_socket);
     httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
-
-    // apply all middleware before handling the route
-    for (const auto &middleware : middlewareStack) {
-        middleware(httpRequest, httpResponse);
-    }
 
     // print request
     std::cout << "HTTP REQUEST MESSAGE: \n"
@@ -307,23 +277,13 @@ void HttpServer::handleRequest(int client_socket) {
     // setting main route for lookup
     httpRequest.setUri(extractMainRoute(httpRequest.getUri()));
 
-    if (check_routes()) {
-        // if route exists
-        routes.find(route_template)->second(httpRequest, httpResponse);
-        handleResponse(client_socket);
-
-    } else {
-        // if route doesn't exist
-        logger::error("client_socket " + std::to_string(client_socket) +
-                      " -- route does not exist...");
-
-        // set headers
-        httpResponse.setHeaders({{"Content-Type", "text/html"}, {"Connection", "close"}});
-        // error response
-        std::string errorResponse = "Route does not exist!";
-        httpResponse.status(400).send(errorResponse);
-        handleResponse(client_socket);
+    if (!router.handleRoute(httpRequest, httpResponse)) {
+        logger::error("Route not found: " + httpRequest.getUri());
+        httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
+        httpResponse.status(404).send("Route not found!");
     }
+
+    handleResponse(client_socket);
 
     // stop timer and calculate duration
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -372,80 +332,6 @@ void HttpServer::acceptConnections() {
     }
 }
 
-bool HttpServer::is_route_match(const std::string &routePattern, const std::string &requestUri) {
-    // split the route pattern and request URI into segments
-    auto routeSegments = httpRequest.split_path(routePattern);
-    auto requestSegments = httpRequest.split_path(requestUri);
-
-    // if the number of segments doesn't match, the route doesn't match
-    if (routeSegments.size() != requestSegments.size()) {
-        return false;
-    }
-
-    // check each segment for a match
-    for (size_t i = 0; i < routeSegments.size(); ++i) {
-        if (routeSegments[i].front() == ':') {
-            // if the route segment starts with ':', treat it as a wildcard
-            continue;
-        } else if (routeSegments[i] != requestSegments[i]) {
-            // if the segments don't match, return false
-            return false;
-        }
-    }
-
-    // all segments match
-    return true;
-}
-
-bool HttpServer::check_routes() {
-    try {
-        std::string request_route = httpRequest.getUri();
-
-        // catch all for routes not to be too long
-        if (request_route.length() > 2048) {
-            logger::error("Route is too long, please try again.");
-            return false;
-        };
-
-        logger::log("Received route \"" + request_route + "\"");
-
-        // find route template created at beginning routes
-        for (const auto &route : routes) {
-            if (is_route_match(route.first, request_route)) {
-                route_template = route.first;
-                httpRequest.setRouteTemplateParams(route_template, request_route);
-            }
-        }
-
-        // check method matches expected
-        for (const auto &route : method_route_pair) {
-            if (route.first == route_template) {
-                if (route.second != httpRequest.getMethod()) {
-                    logger::error("Incorrect API request method: " + httpRequest.getMethod() +
-                                  " Expected: " + route.second);
-                    return false;
-                }
-            }
-        }
-
-        // split paths into vector for easier access and indexing
-        auto request_segments = httpRequest.split_path(request_route);
-        auto route_segments = httpRequest.split_path(route_template);
-
-        // find route template created at beginning routes
-        for (const auto &route : routes) {
-            if (is_route_match(route.first, request_route)) {
-
-                return true;
-            }
-        }
-
-    } catch (MyCustomException error) {
-        logger::error(error.what());
-    }
-    return false;
-}
-
 void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector,
                                    const std::string &message) {
     for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
@@ -477,14 +363,14 @@ void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector,
 }
 
 void HttpServer::get(const std::string &route, std::function<void(Request &, Response &)> handler) {
-    addRoute("GET", route, handler);
+    router.get(route, handler);
 }
 void HttpServer::post(const std::string &route,
                       std::function<void(Request &, Response &)> handler) {
-    addRoute("POST", route, handler);
+    router.post(route, handler);
 }
 void HttpServer::put(const std::string &route, std::function<void(Request &, Response &)> handler) {
-    addRoute("PUT", route, handler);
+    router.put(route, handler);
 }
 
 HttpServer::~HttpServer() {
