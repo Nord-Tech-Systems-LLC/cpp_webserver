@@ -16,6 +16,9 @@ int main() {
 
     server.middleware({{"Access-Control-Allow-Origin", "*"}, {"Content-Type", "application/json"}});
 
+    server.use("/json",
+               [](Request &req, Response &res) { std::cout << "This is middleware" << std::endl; });
+
     server.get("/", [](Request &req, Response &res) { res.status(201).send("Hello, world!"); });
 
     server.get("/json/:page/:limit", [&](Request &req, Response &res) {

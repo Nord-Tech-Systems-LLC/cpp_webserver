@@ -12,6 +12,7 @@ class Response {
     std::map<std::string, std::string> headers;
     std::string body;
     std::string requestMethod;
+    bool sent = false;
 
   public:
     // getters
@@ -20,6 +21,7 @@ class Response {
     std::map<std::string, std::string> getHeaders() const;
     std::string getBody() const;
     std::string getRequestMethod() const;
+    bool isSent() const;
 
     // setters
     void setStatusCode(int newStatusCode);

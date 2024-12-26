@@ -373,6 +373,18 @@ void HttpServer::put(const std::string &route, std::function<void(Request &, Res
     router.put(route, handler);
 }
 
+void HttpServer::del(const std::string &route, std::function<void(Request &, Response &)> handler) {
+    router.del(route, handler);
+}
+
+void HttpServer::use(std::function<void(Request &, Response &)> handler) {
+    router.use(handler);
+}
+
+void HttpServer::use(const std::string &route, std::function<void(Request &, Response &)> handler) {
+    router.use(route, handler);
+}
+
 HttpServer::~HttpServer() {
 // close the server socket
 #ifdef __linux__

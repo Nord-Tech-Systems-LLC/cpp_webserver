@@ -50,6 +50,10 @@ void Response::setRequestMethod(std::string newRequestMethod) {
     requestMethod = newRequestMethod;
 }
 
+bool Response::isSent() const {
+    return sent;
+}
+
 // helper methods
 std::string Response::contentLength(const std::string &input_body) {
     // input html return content length
@@ -66,6 +70,7 @@ void Response::send(const std::string &content) {
     std::string response = buildResponse(
         std::to_string(status_code) + " " + std::string(status_message), headers, content);
     body = response;
+    sent = true;
 }
 
 Response &Response::status(int code) {
@@ -107,6 +112,7 @@ std::string Response::buildResponse(const std::string &status,
 }
 
 void Response::reset() {
+    sent = false;           // reset to notify if res is sent
     status_code = 0;        // Reset status code to a default value
     status_message.clear(); // Clear status message
     headers.clear();        // Clear all headers

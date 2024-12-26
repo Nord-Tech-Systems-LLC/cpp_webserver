@@ -19,6 +19,9 @@ class HttpServer {
     void get(const std::string &route, std::function<void(Request &, Response &)> handler);
     void post(const std::string &route, std::function<void(Request &, Response &)> handler);
     void put(const std::string &route, std::function<void(Request &, Response &)> handler);
+    void del(const std::string &route, std::function<void(Request &, Response &)> handler);
+    void use(std::function<void(Request &, Response &)> handler);
+    void use(const std::string &route, std::function<void(Request &, Response &)> handler);
     void middleware(const std::map<std::string, std::string> &headers);
 
   private:

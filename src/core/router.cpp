@@ -23,11 +23,24 @@ void Router::put(const std::string &route, std::function<void(Request &, Respons
     addRoute("PUT", route, handler);
 }
 
+void Router::del(const std::string &route, std::function<void(Request &, Response &)> handler) {
+    addRoute("DELETE", route, handler);
+}
+
 void Router::use(MiddlewareFunction middleware) {
-    middlewareStack.push_back(middleware);
+    // Global middleware
+    middlewareStack.push_back({"", // Empty path means global
+                               middleware,
+                               true});
+}
+
+void Router::use(const std::string &path, MiddlewareFunction middleware) {
+    // Path-specific middleware
+    middlewareStack.push_back({path, middleware, false});
 }
 
 bool Router::isRouteMatch(const std::string &routePattern, const std::string &requestUri) const {
+
     auto splitPath = [](const std::string &path) {
         std::vector<std::string> segments;
         std::string segment;
@@ -60,6 +73,27 @@ bool Router::isRouteMatch(const std::string &routePattern, const std::string &re
     return true;
 }
 
+bool Router::isPathMatch(const std::string &middlewarePath, const std::string &requestUri) const {
+
+    // If middleware path is empty (global middleware) or paths are equal, it's a match
+    if (middlewarePath.empty() || middlewarePath == requestUri) {
+        return true;
+    }
+
+    // Check if the request URI starts with the middleware path
+    // This allows middleware to match all routes under a specific path
+    if (requestUri.find(middlewarePath) == 0) {
+        // Make sure we match complete path segments
+        // e.g., "/api" should match "/api/users" but not "/api-users"
+        if (requestUri.length() == middlewarePath.length() ||
+            requestUri[middlewarePath.length()] == '/') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 std::string Router::findMatchingRouteTemplate(const std::string &requestUri) const {
     for (const auto &route : routes) {
         if (isRouteMatch(route.first, requestUri)) {
@@ -70,9 +104,12 @@ std::string Router::findMatchingRouteTemplate(const std::string &requestUri) con
 }
 
 bool Router::handleRoute(Request &req, Response &res) {
-    // Apply middleware first
+    // Apply middleware
     for (const auto &middleware : middlewareStack) {
-        middleware(req, res);
+        // Check if middleware should be applied to this route
+        if (middleware.isGlobal || isPathMatch(middleware.path, req.getUri())) {
+            middleware.handler(req, res);
+        }
     }
 
     std::string routeTemplate = findMatchingRouteTemplate(req.getUri());
