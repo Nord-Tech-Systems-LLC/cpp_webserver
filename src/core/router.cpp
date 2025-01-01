@@ -104,30 +104,37 @@ std::string Router::findMatchingRouteTemplate(const std::string &requestUri) con
 }
 
 bool Router::handleRoute(Request &req, Response &res) {
-    // Apply middleware
-    for (const auto &middleware : middlewareStack) {
-        // Check if middleware should be applied to this route
-        if (middleware.isGlobal || isPathMatch(middleware.path, req.getUri())) {
-            middleware.handler(req, res);
+    try {
+        // Apply middleware
+        for (const auto &middleware : middlewareStack) {
+            // Check if middleware should be applied to this route
+            if (middleware.isGlobal || isPathMatch(middleware.path, req.getUri())) {
+                middleware.handler(req, res);
+            }
         }
+
+        std::string routeTemplate = findMatchingRouteTemplate(req.getUri());
+        if (routeTemplate.empty()) {
+            return false;
+        }
+
+        const auto &routeInfo = routes.at(routeTemplate);
+        if (routeInfo.method != req.getMethod()) {
+            return false;
+        }
+
+        // Set route template parameters
+        req.setRouteTemplateParams(routeTemplate, req.getUri());
+
+        // Execute the route handler
+        routeInfo.handler(req, res);
+        return true;
+
+    } catch (const std::exception &e) {
+        // Handle exception thrown by middleware or route handler
+        std::cout << e.what() << std::endl;
+        return true; // Stop further processing
     }
-
-    std::string routeTemplate = findMatchingRouteTemplate(req.getUri());
-    if (routeTemplate.empty()) {
-        return false;
-    }
-
-    const auto &routeInfo = routes.at(routeTemplate);
-    if (routeInfo.method != req.getMethod()) {
-        return false;
-    }
-
-    // Set route template parameters
-    req.setRouteTemplateParams(routeTemplate, req.getUri());
-
-    // Execute the route handler
-    routeInfo.handler(req, res);
-    return true;
 }
 
 void Router::printRoutes() const {
