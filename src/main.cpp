@@ -1,6 +1,5 @@
 #include "cpp_webserver_include/core.hpp"
 #include <iostream>
-#include <string>
 
 // TODO:
 // - Create cookie functionality
@@ -11,56 +10,58 @@
 // - Fragments -- add http://localhost:8080/json#fragment -- is not sent to the server, it is
 // primarily for the client browser
 
+class Users {
+  public:
+    static void getUserListData(Request &req, Response &res);
+    static void createUser(Request &req, Response &res);
+    static void getCurrentUser(Request &req, Response &res);
+};
+
+void Users::getUserListData(Request &req, Response &res) {
+    try {
+        int offset = std::stoi(req.getRouteTemplateParams().at(":offset"));
+        int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
+
+        res.status(200).send("User List Data");
+    } catch (const std::invalid_argument &e) {
+        res.status(400).send("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) {
+        res.status(500).send("Internal Server Error: " + std::string(e.what()));
+    }
+}
+
+void Users::createUser(Request &req, Response &res) {
+    try {
+        res.status(200).send(req.getBody());
+    } catch (const std::invalid_argument &e) {
+        res.status(400).send("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) {
+        res.status(500).send("internal Server Error: " + std::string(e.what()));
+    }
+}
+
+void Users::getCurrentUser(Request &req, Response &res) {
+    try {
+        res.status(200).send("Current User!");
+    } catch (const std::invalid_argument &e) {
+        res.status(400).send("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) {
+        res.status(500).send("Internal Server Error: " + std::string(e.what()));
+    }
+}
+
+void user_controller(HttpServer &server) {
+    server.get("/list_users/:offset/:limit", Users::getUserListData);
+    server.get("/current_user", Users::getCurrentUser);
+    server.post("/create_user", Users::createUser);
+}
+
 int main() {
     HttpServer server("127.0.0.1", "8080");
-
-    server.middleware({{"Access-Control-Allow-Origin", "*"}, {"Content-Type", "application/json"}});
-
-    server.use("/json",
-               [](Request &req, Response &res) { std::cout << "This is middleware" << std::endl; });
-
-    server.get("/", [](Request &req, Response &res) { res.status(201).send("Hello, world!"); });
-
-    server.get("/json/:page/:limit", [&](Request &req, Response &res) {
-        try {
-            // Validate the path parameters
-            int page = std::stoi(req.getRouteTemplateParams().at(":page"));
-            int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
-
-            std::cout << std::endl;
-            std::cout << "Query Params: " << std::endl;
-            for (auto element : req.getQueryParams()) {
-                std::cout << element.first << " " << element.second << std::endl;
-            }
-            std::cout << std::endl;
-
-            std::cout << std::endl;
-            std::cout << "Body: " << req.getBody() << std::endl;
-            std::cout << std::endl;
-
-            // Further validation on page and limit
-            if (page <= 0) {
-                throw std::invalid_argument("Invalid page value.");
-            }
-            if (limit <= 0) {
-                throw std::invalid_argument("Invalid limit value.");
-            }
-
-            res.status(200).send("hello world");
-
-        } catch (const std::invalid_argument &e) {
-            res.status(400).send("Bad Request: " + std::string(e.what()));
-        } catch (const std::exception &e) {
-            res.status(500).send("Internal Server Error: " + std::string(e.what()));
-        }
-    });
-
-    server.post("/submit", [](Request &req, Response &res) {
-        // Handle POST data
-        res.status(201).send("Submitted!");
-    });
-    server.printRoutes();
-    server.start();
-
+    server.middleware({{"Access-Control-Allow-Origin", "*"}}); // set global header config
+    server.use(                                                // set middleware
+        [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
+    user_controller(server); // load route controller
+    server.start();          // start server
     return 0;
 }
