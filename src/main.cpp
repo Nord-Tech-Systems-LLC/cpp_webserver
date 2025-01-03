@@ -42,6 +42,7 @@ void Users::createUser(Request &req, Response &res) {
 
 void Users::getCurrentUser(Request &req, Response &res) {
     try {
+        std::cout << "Cookie_10" << req.getCookies().at("Cookie_10") << std::endl;
         res.status(200).send("Current User!");
     } catch (const std::invalid_argument &e) {
         res.status(400).send("Bad Request: " + std::string(e.what()));
@@ -62,6 +63,7 @@ int main() {
     server.use(                                                // set middleware
         [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
     user_controller(server); // load route controller
-    server.start();          // start server
+    server.printRoutes();
+    server.start(); // start server
     return 0;
 }

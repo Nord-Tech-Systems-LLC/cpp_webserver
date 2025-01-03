@@ -17,6 +17,9 @@ std::string Request::getQuery() const {
 std::vector<HttpHeader> Request::getHeaders() const {
     return headers;
 }
+std::unordered_map<std::string, std::string> Request::getCookies() const {
+    return cookies;
+}
 std::string Request::getBody() const {
     return body;
 }
@@ -54,6 +57,10 @@ void Request::setHead(const std::string &newHead) {
 }
 void Request::setMessage(const std::string &newMessage) {
     message = newMessage;
+}
+void Request::setSingleCookie(const std::string &cookieName, const std::string &cookieValue) {
+    // Set the single header in the map
+    cookies[cookieName] = cookieValue;
 }
 
 // Parses a query string and stores each parameter in queryParams
@@ -137,6 +144,26 @@ std::string Request::getHeaderValue(const std::string &name) const {
         }
     }
     return "";
+}
+
+void Request::parseCookies(const std::vector<HttpHeader> &headers) {
+    for (const auto &header : headers) {
+        if (header.name == "Cookie") {
+            std::istringstream cookieStream(header.value);
+            std::string cookiePair;
+            while (std::getline(cookieStream, cookiePair, ';')) {
+                size_t eq_pos = cookiePair.find('=');
+                if (eq_pos != std::string::npos) {
+                    std::string name = cookiePair.substr(0, eq_pos);
+                    std::string value = cookiePair.substr(eq_pos + 1);
+                    trim(name);  // Optional utility function to remove leading/trailing whitespace
+                    trim(value); // Apply trimming to clean up spaces around cookies
+                    setSingleCookie(name, value); // Assume `setCookie` is defined in `HttpRequest`
+                }
+            }
+            break; // only process the first "Cookie" header
+        }
+    }
 }
 
 // Split a string into segments by a delimiter

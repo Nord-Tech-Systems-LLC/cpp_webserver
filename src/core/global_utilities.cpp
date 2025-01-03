@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cctype>
+#include <locale>
 #include <string>
 #include <unordered_map>
 
@@ -73,3 +76,22 @@ extern const std::unordered_map<int, std::string> http_status_codes = {
     {508, "Loop Detected"},
     {510, "Not Extended"},
     {511, "Network Authentication Required"}};
+
+// Trim from start (in place)
+static void ltrim(std::string &s) {
+    s.erase(s.begin(),
+            std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
+}
+
+// Trim from end (in place)
+static void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); })
+                .base(),
+            s.end());
+}
+
+// Trim from both ends (in place)
+void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}

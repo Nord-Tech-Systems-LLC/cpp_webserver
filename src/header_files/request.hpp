@@ -15,6 +15,11 @@ struct HttpHeader {
     std::string value; // Header value
 };
 
+struct HttpCookie {
+    std::string name;  // Cookie name
+    std::string value; // Cookie value
+};
+
 class Request {
   private:
     // HttpMessage properties
@@ -26,6 +31,7 @@ class Request {
     std::string body;                // Body content
     std::string head;                // Request line and headers as a single string
     std::string message;             // Full request message (head + body)
+    std::unordered_map<std::string, std::string> cookies;
 
     // Parsed query and path parameters for easier access
     std::unordered_map<std::string, std::string> queryParams; // example: ?userId=123&bookId=456
@@ -39,6 +45,7 @@ class Request {
     std::string getProto() const;
     std::string getQuery() const;
     std::vector<HttpHeader> getHeaders() const;
+    std::unordered_map<std::string, std::string> getCookies() const;
     std::string getBody() const;
     std::string getHead() const;
     std::string getMessage() const;
@@ -55,7 +62,7 @@ class Request {
     void setMessage(const std::string &newMessage);
     void setParams(const std::string &uri);
     void setRouteTemplateParams(const std::string &routePattern, const std::string &requestUri);
-
+    void setSingleCookie(const std::string &cookieName, const std::string &cookieValue);
     // Helper Methods
     std::string returnParamValue(const std::string &paramKey) const;
     std::string contentLength() const;
@@ -63,6 +70,7 @@ class Request {
 
     // Utility to get specific header value by name
     std::string getHeaderValue(const std::string &name) const;
+    void parseCookies(const std::vector<HttpHeader> &headers);
 
     // Reset function
     void reset();

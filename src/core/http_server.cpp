@@ -271,6 +271,7 @@ void HttpServer::handleRequest(int client_socket) {
     httpRequest.setHeaders(newHeaders);          // setting headers after each request
     httpRequest.setParams("");                   // resetting params after each request
     httpRequest.setParams(httpRequest.getUri()); // parse url params and set them for the request
+    httpRequest.parseCookies(httpRequest.getHeaders());
     httpResponse.setRequestMethod(
         httpRequest.getMethod()); // passing request method to response for validation
 
