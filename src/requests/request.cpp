@@ -183,6 +183,7 @@ std::vector<std::string> Request::split_path(const std::string &path, char delim
 
 // Reset function implementation
 void Request::reset() {
+    cookies.clear();
     method.clear();
     uri.clear();
     query.clear();
