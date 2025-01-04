@@ -63,7 +63,7 @@ class Request {
     void parseCookies(const std::vector<HttpHeader> &headers);
 
     // helpers
-    void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
+    std::vector<HttpHeader> extractHttpHeader(const std::string &message);
     std::string extractMainRoute(const std::string &url);
 };
 

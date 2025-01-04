@@ -214,10 +214,6 @@ void HttpServer::handleRequest(int client_socket) {
     // store the request message in the HttpMessage struct
     httpRequest.buildRequest(requestMessage, router);
 
-    // print request
-    std::cout << "HTTP REQUEST MESSAGE: \n"
-              << httpRequest.message << std::endl; // Log the raw request message
-
     // passing request method to response for validation
     httpResponse.setRequestMethod(httpRequest.method);
 

@@ -112,6 +112,9 @@ void Request::parseCookies(const std::vector<HttpHeader> &headers) {
 void Request::buildRequest(std::string &message, Router &router) {
     setMessage(message);
 
+    // print request
+    std::cout << "HTTP REQUEST MESSAGE: \n" << message << std::endl; // Log the raw request message
+
     // find the body of the request
     size_t body_start = message.find("\r\n\r\n");
     if (body_start != std::string::npos) {
@@ -135,19 +138,13 @@ void Request::buildRequest(std::string &message, Router &router) {
     std::string proto = message.substr(uri_end + 1, proto_end - uri_end - 1);
 
     // set the values in the HttpRequest object
-    setMethod(method);
-    setUri(uri);
-    setProto(proto);
-
-    // set headers by parsing request
-    std::vector<HttpHeader> newHeaders = {};
-    extractHttpHeader(newHeaders, message);
-    setHeaders(newHeaders); // setting headers after each request
-    setParams("");          // resetting params after each request
-    setParams(uri);         // parse url params and set them for the request
-    parseCookies(headers);
-    // setting main route for lookup
-    setUri(extractMainRoute(uri));
+    setMethod(method);                      // main request method
+    setUri(uri);                            // uri route
+    setProto(proto);                        // protocol
+    setHeaders(extractHttpHeader(message)); // setting headers after each request
+    setParams(uri);                         // parse url params and set them for the request
+    parseCookies(headers);                  // setting cookies from headers
+    setUri(extractMainRoute(uri));          // setting main route for lookup
 
     // Set route template parameters
     std::string routeTemplate = router.findMatchingRouteTemplate(uri);
@@ -155,7 +152,8 @@ void Request::buildRequest(std::string &message, Router &router) {
 };
 
 // helper Methods
-void Request::extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message) {
+std::vector<HttpHeader> Request::extractHttpHeader(const std::string &message) {
+    std::vector<HttpHeader> headerVector = {};
     for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
         // Get header name (from the message) and its value
         headerVector.clear();
@@ -182,6 +180,7 @@ void Request::extractHttpHeader(std::vector<HttpHeader> &headerVector, const std
             }
         }
     }
+    return headerVector;
 };
 
 std::string Request::extractMainRoute(const std::string &url) {
