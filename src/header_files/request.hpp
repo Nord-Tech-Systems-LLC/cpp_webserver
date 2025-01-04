@@ -18,9 +18,9 @@ struct HttpHeader {
     std::string value; // header value
 };
 
-class Request : public Router {
+class Request {
   public:
-    void buildRequest(std::string &message);
+    void buildRequest(std::string &message, Router &router);
     // httpMessage properties
     std::string method;              // HTTP method (GET, POST, etc.)
     std::string uri;                 // Requested URI

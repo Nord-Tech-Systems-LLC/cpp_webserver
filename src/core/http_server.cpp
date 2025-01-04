@@ -212,7 +212,7 @@ void HttpServer::handleRequest(int client_socket) {
     std::string requestMessage = readSocket(client_socket);
 
     // store the request message in the HttpMessage struct
-    httpRequest.buildRequest(requestMessage);
+    httpRequest.buildRequest(requestMessage, router);
 
     // print request
     std::cout << "HTTP REQUEST MESSAGE: \n"

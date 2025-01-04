@@ -97,6 +97,7 @@ bool Router::isPathMatch(const std::string &middlewarePath, const std::string &r
 std::string Router::findMatchingRouteTemplate(const std::string &requestUri) const {
     for (const auto &route : routes) {
         if (isRouteMatch(route.first, requestUri)) {
+            // routeMatch = route.first;
             return route.first;
         }
     }

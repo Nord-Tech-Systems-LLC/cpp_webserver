@@ -109,7 +109,7 @@ void Request::parseCookies(const std::vector<HttpHeader> &headers) {
     }
 }
 
-void Request::buildRequest(std::string &message) {
+void Request::buildRequest(std::string &message, Router &router) {
     setMessage(message);
 
     // find the body of the request
@@ -150,7 +150,7 @@ void Request::buildRequest(std::string &message) {
     setUri(extractMainRoute(uri));
 
     // Set route template parameters
-    std::string routeTemplate = findMatchingRouteTemplate(uri);
+    std::string routeTemplate = router.findMatchingRouteTemplate(uri);
     setRouteTemplateParams(routeTemplate, uri);
 };
 
