@@ -18,9 +18,6 @@ void Request::setHeaders(const std::vector<HttpHeader> &newHeaders) {
 void Request::setBody(const std::string &newBody) {
     body = newBody;
 }
-void Request::setHead(const std::string &newHead) {
-    head = newHead;
-}
 void Request::setMessage(const std::string &newMessage) {
     message = newMessage;
 }
@@ -237,7 +234,6 @@ void Request::reset() {
     proto.clear();
     headers.clear();
     body.clear();
-    head.clear();
     message.clear();
     queryParams.clear();
     routeTemplateParams.clear();

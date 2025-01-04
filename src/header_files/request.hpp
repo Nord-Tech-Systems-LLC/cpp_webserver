@@ -28,7 +28,6 @@ class Request {
     std::string proto;               // HTTP version (e.g., HTTP/1.1)
     std::vector<HttpHeader> headers; // Headers as vector of HttpHeader
     std::string body;                // Body content
-    std::string head;                // Request line and headers as a single string
     std::string message;             // Full request message (head + body)
     std::unordered_map<std::string, std::string> cookies;
 
@@ -55,7 +54,6 @@ class Request {
     void setProto(const std::string &newProto);
     void setHeaders(const std::vector<HttpHeader> &newHeaders);
     void setBody(const std::string &newBody);
-    void setHead(const std::string &newHead);
     void setMessage(const std::string &newMessage);
     void setParams(const std::string &uri);
     void setRouteTemplateParams(const std::string &routePattern, const std::string &requestUri);
