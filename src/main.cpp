@@ -42,7 +42,6 @@ void Users::createUser(Request &req, Response &res) {
 
 void Users::getCurrentUser(Request &req, Response &res) {
     try {
-        // std::cout << "Cookie_10" << req.cookies.at("Cookie_10") << std::endl;
         res.status(200).send("Current User!");
     } catch (const std::invalid_argument &e) {
         res.status(400).send("Bad Request: " + std::string(e.what()));

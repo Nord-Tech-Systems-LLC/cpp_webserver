@@ -12,7 +12,7 @@ void Request::setUri(const std::string &newUri) {
 void Request::setProto(const std::string &newProto) {
     proto = newProto;
 }
-void Request::setHeaders(const std::vector<HttpHeader> &newHeaders) {
+void Request::setHeaders(const std::unordered_map<std::string, std::string> &newHeaders) {
     headers = newHeaders;
 }
 void Request::setBody(const std::string &newBody) {
@@ -86,22 +86,20 @@ void Request::setRouteTemplateParams(const std::string &routePattern,
     }
 }
 
-void Request::parseCookies(const std::vector<HttpHeader> &headers) {
-    for (const auto &header : headers) {
-        if (header.name == "Cookie") {
-            std::istringstream cookieStream(header.value);
-            std::string cookiePair;
-            while (std::getline(cookieStream, cookiePair, ';')) {
-                size_t eq_pos = cookiePair.find('=');
-                if (eq_pos != std::string::npos) {
-                    std::string name = cookiePair.substr(0, eq_pos);
-                    std::string value = cookiePair.substr(eq_pos + 1);
-                    trim(name);  // Optional utility function to remove leading/trailing whitespace
-                    trim(value); // Apply trimming to clean up spaces around cookies
-                    setSingleCookie(name, value); // Assume `setCookie` is defined in `HttpRequest`
-                }
+void Request::parseCookies(const std::unordered_map<std::string, std::string> &headers) {
+    auto it = headers.find("Cookie");
+    if (it != headers.end()) {
+        std::istringstream cookieStream(it->second);
+        std::string cookiePair;
+        while (std::getline(cookieStream, cookiePair, ';')) {
+            size_t eq_pos = cookiePair.find('=');
+            if (eq_pos != std::string::npos) {
+                std::string name = cookiePair.substr(0, eq_pos);
+                std::string value = cookiePair.substr(eq_pos + 1);
+                trim(name);                   // Remove leading/trailing whitespace
+                trim(value);                  // Trim spaces around values
+                setSingleCookie(name, value); // Set cookie in the request object
             }
-            break; // only process the first "Cookie" header
         }
     }
 }
@@ -149,35 +147,29 @@ void Request::buildRequest(std::string &message, Router &router) {
 };
 
 // helper Methods
-std::vector<HttpHeader> Request::extractHttpHeader(const std::string &message) {
-    std::vector<HttpHeader> headerVector = {};
-    for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
-        // Get header name (from the message) and its value
-        headerVector.clear();
-        std::istringstream stream(message);
-        std::string line;
+std::unordered_map<std::string, std::string>
+Request::extractHttpHeader(const std::string &message) {
+    std::unordered_map<std::string, std::string> headerMap;
+    std::istringstream stream(message);
+    std::string line;
 
-        // Skip the request line (first line)
-        std::getline(stream, line);
+    // Skip the request line (first line)
+    std::getline(stream, line);
 
-        // Loop through each subsequent line until we find an empty line
-        while (std::getline(stream, line) && !line.empty() && line != "\r") {
-            // Each header line is in the format: "Header-Name: Header-Value"
-            size_t colonPos = line.find(":");
-            if (colonPos != std::string::npos) {
-                std::string name = line.substr(0, colonPos);
-                std::string value = line.substr(colonPos + 1);
+    // Loop through each subsequent line until we find an empty line
+    while (std::getline(stream, line) && !line.empty() && line != "\r") {
+        size_t colonPos = line.find(":");
+        if (colonPos != std::string::npos) {
+            std::string name = line.substr(0, colonPos);
+            std::string value = line.substr(colonPos + 1);
 
-                // Trim any leading whitespace in the value
-                size_t firstNonSpace = value.find_first_not_of(" \t");
-                if (firstNonSpace != std::string::npos) {
-                    value = value.substr(firstNonSpace);
-                }
-                headerVector.push_back({name, value});
-            }
+            trim(name);  // Remove whitespace around the header name
+            trim(value); // Remove leading/trailing whitespace around the header value
+
+            headerMap[name] = value; // Insert into the map
         }
     }
-    return headerVector;
+    return headerMap;
 };
 
 std::string Request::extractMainRoute(const std::string &url) {
@@ -189,12 +181,6 @@ std::string Request::extractMainRoute(const std::string &url) {
     }
 };
 
-// Returns the value of a specific query parameter by key
-std::string Request::returnParamValue(const std::string &paramKey) const {
-    auto it = queryParams.find(paramKey);
-    return (it != queryParams.end()) ? it->second : "";
-}
-
 // Calculates the content length of the body
 std::string Request::contentLength() const {
     return std::to_string(body.size());
@@ -202,12 +188,11 @@ std::string Request::contentLength() const {
 
 // Utility to get specific header value by name
 std::string Request::getHeaderValue(const std::string &name) const {
-    for (const auto &header : headers) {
-        if (header.name == name) {
-            return header.value;
-        }
+    auto it = headers.find(name);
+    if (it != headers.end()) {
+        return it->second; // Return the value associated with the name
     }
-    return "";
+    return ""; // Return empty string if the header is not found
 }
 
 // Split a string into segments by a delimiter
