@@ -44,7 +44,7 @@ class HttpServer {
     Response httpResponse;
 
     // map to store method, route, and http version
-    void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
+    // void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
 };
 
 #endif

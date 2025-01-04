@@ -19,8 +19,8 @@ class Users {
 
 void Users::getUserListData(Request &req, Response &res) {
     try {
-        int offset = std::stoi(req.getRouteTemplateParams().at(":offset"));
-        int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
+        int offset = std::stoi(req.routeTemplateParams.at(":offset"));
+        int limit = std::stoi(req.routeTemplateParams.at(":limit"));
 
         res.status(200).send("User List Data");
     } catch (const std::invalid_argument &e) {
@@ -32,7 +32,7 @@ void Users::getUserListData(Request &req, Response &res) {
 
 void Users::createUser(Request &req, Response &res) {
     try {
-        res.status(200).send(req.getBody());
+        res.status(200).send(req.body);
     } catch (const std::invalid_argument &e) {
         res.status(400).send("Bad Request: " + std::string(e.what()));
     } catch (const std::exception &e) {
@@ -42,7 +42,7 @@ void Users::createUser(Request &req, Response &res) {
 
 void Users::getCurrentUser(Request &req, Response &res) {
     try {
-        std::cout << "Cookie_10" << req.getCookies().at("Cookie_10") << std::endl;
+        std::cout << "Cookie_10" << req.cookies.at("Cookie_10") << std::endl;
         res.status(200).send("Current User!");
     } catch (const std::invalid_argument &e) {
         res.status(400).send("Bad Request: " + std::string(e.what()));

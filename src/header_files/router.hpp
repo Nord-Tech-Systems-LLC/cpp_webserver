@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+class Request;  // forward declare
+class Response; // forward declare
+
 class Router {
   public:
     Router() = default;
@@ -26,6 +29,7 @@ class Router {
     using MiddlewareFunction = std::function<void(Request &, Response &)>;
     void use(MiddlewareFunction middleware);                          // Global middleware
     void use(const std::string &path, MiddlewareFunction middleware); // Path-specific middleware
+    std::string findMatchingRouteTemplate(const std::string &requestUri) const;
 
   private:
     void addRoute(const std::string &method,
@@ -33,7 +37,6 @@ class Router {
                   std::function<void(Request &, Response &)> handler);
     bool isRouteMatch(const std::string &routePattern, const std::string &requestUri) const;
     bool isPathMatch(const std::string &middlewarePath, const std::string &requestUri) const;
-    std::string findMatchingRouteTemplate(const std::string &requestUri) const;
 
     struct RouteInfo {
         std::string method;

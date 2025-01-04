@@ -108,23 +108,20 @@ bool Router::handleRoute(Request &req, Response &res) {
         // Apply middleware
         for (const auto &middleware : middlewareStack) {
             // Check if middleware should be applied to this route
-            if (middleware.isGlobal || isPathMatch(middleware.path, req.getUri())) {
+            if (middleware.isGlobal || isPathMatch(middleware.path, req.uri)) {
                 middleware.handler(req, res);
             }
         }
 
-        std::string routeTemplate = findMatchingRouteTemplate(req.getUri());
+        std::string routeTemplate = findMatchingRouteTemplate(req.uri);
         if (routeTemplate.empty()) {
             return false;
         }
 
         const auto &routeInfo = routes.at(routeTemplate);
-        if (routeInfo.method != req.getMethod()) {
+        if (routeInfo.method != req.method) {
             return false;
         }
-
-        // Set route template parameters
-        req.setRouteTemplateParams(routeTemplate, req.getUri());
 
         // Execute the route handler
         routeInfo.handler(req, res);

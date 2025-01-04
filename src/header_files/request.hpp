@@ -1,28 +1,27 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
+#include "cpp_webserver_include/core.hpp"
+
+#include <map>
+#include <sstream>
 #include <string>
-#include <vector>
-// #include <map>
 #include <unordered_map>
+#include <vector>
 
 #ifndef MAX_HTTP_HEADERS
 #define MAX_HTTP_HEADERS 30
 #endif
 
 struct HttpHeader {
-    std::string name;  // Header name
-    std::string value; // Header value
+    std::string name;  // header name
+    std::string value; // header value
 };
 
-struct HttpCookie {
-    std::string name;  // Cookie name
-    std::string value; // Cookie value
-};
-
-class Request {
-  private:
-    // HttpMessage properties
+class Request : public Router {
+  public:
+    void buildRequest(std::string &message);
+    // httpMessage properties
     std::string method;              // HTTP method (GET, POST, etc.)
     std::string uri;                 // Requested URI
     std::string query;               // Query parameters as a single string
@@ -33,26 +32,24 @@ class Request {
     std::string message;             // Full request message (head + body)
     std::unordered_map<std::string, std::string> cookies;
 
-    // Parsed query and path parameters for easier access
+    // parsed query and path parameters for easier access
     std::unordered_map<std::string, std::string> queryParams; // example: ?userId=123&bookId=456
     std::unordered_map<std::string, std::string>
         routeTemplateParams; // example: /users/123/books/456
 
-  public:
-    // Getters
-    std::string getMethod() const;
-    std::string getUri() const;
-    std::string getProto() const;
-    std::string getQuery() const;
-    std::vector<HttpHeader> getHeaders() const;
-    std::unordered_map<std::string, std::string> getCookies() const;
-    std::string getBody() const;
-    std::string getHead() const;
-    std::string getMessage() const;
-    std::unordered_map<std::string, std::string> getQueryParams() const;
-    std::unordered_map<std::string, std::string> getRouteTemplateParams() const;
+    // helper Methods
+    std::string returnParamValue(const std::string &paramKey) const;
+    std::string contentLength() const;
+    std::vector<std::string> split_path(const std::string &path, char delimiter = '/');
 
-    // Setters
+    // utility to get specific header value by name
+    std::string getHeaderValue(const std::string &name) const;
+
+    // reset function
+    void reset();
+
+  private:
+    // setters
     void setMethod(const std::string &newMethod);
     void setUri(const std::string &newUri);
     void setProto(const std::string &newProto);
@@ -63,17 +60,11 @@ class Request {
     void setParams(const std::string &uri);
     void setRouteTemplateParams(const std::string &routePattern, const std::string &requestUri);
     void setSingleCookie(const std::string &cookieName, const std::string &cookieValue);
-    // Helper Methods
-    std::string returnParamValue(const std::string &paramKey) const;
-    std::string contentLength() const;
-    std::vector<std::string> split_path(const std::string &path, char delimiter = '/');
-
-    // Utility to get specific header value by name
-    std::string getHeaderValue(const std::string &name) const;
     void parseCookies(const std::vector<HttpHeader> &headers);
 
-    // Reset function
-    void reset();
+    // helpers
+    void extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message);
+    std::string extractMainRoute(const std::string &url);
 };
 
 #endif

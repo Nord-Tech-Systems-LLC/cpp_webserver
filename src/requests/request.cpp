@@ -1,40 +1,6 @@
 #include "cpp_webserver_include/core.hpp"
 #include <sstream>
-
-// Getters
-std::string Request::getMethod() const {
-    return method;
-}
-std::string Request::getUri() const {
-    return uri;
-}
-std::string Request::getProto() const {
-    return proto;
-}
-std::string Request::getQuery() const {
-    return query;
-}
-std::vector<HttpHeader> Request::getHeaders() const {
-    return headers;
-}
-std::unordered_map<std::string, std::string> Request::getCookies() const {
-    return cookies;
-}
-std::string Request::getBody() const {
-    return body;
-}
-std::string Request::getHead() const {
-    return head;
-}
-std::string Request::getMessage() const {
-    return message;
-}
-std::unordered_map<std::string, std::string> Request::getQueryParams() const {
-    return queryParams;
-}
-std::unordered_map<std::string, std::string> Request::getRouteTemplateParams() const {
-    return routeTemplateParams;
-}
+#include <stdexcept>
 
 // Setters
 void Request::setMethod(const std::string &newMethod) {
@@ -123,7 +89,109 @@ void Request::setRouteTemplateParams(const std::string &routePattern,
     }
 }
 
-// Helper Methods
+void Request::parseCookies(const std::vector<HttpHeader> &headers) {
+    for (const auto &header : headers) {
+        if (header.name == "Cookie") {
+            std::istringstream cookieStream(header.value);
+            std::string cookiePair;
+            while (std::getline(cookieStream, cookiePair, ';')) {
+                size_t eq_pos = cookiePair.find('=');
+                if (eq_pos != std::string::npos) {
+                    std::string name = cookiePair.substr(0, eq_pos);
+                    std::string value = cookiePair.substr(eq_pos + 1);
+                    trim(name);  // Optional utility function to remove leading/trailing whitespace
+                    trim(value); // Apply trimming to clean up spaces around cookies
+                    setSingleCookie(name, value); // Assume `setCookie` is defined in `HttpRequest`
+                }
+            }
+            break; // only process the first "Cookie" header
+        }
+    }
+}
+
+void Request::buildRequest(std::string &message) {
+    setMessage(message);
+
+    // find the body of the request
+    size_t body_start = message.find("\r\n\r\n");
+    if (body_start != std::string::npos) {
+        // the body starts after the "\r\n\r\n" sequence
+        std::string body = message.substr(body_start + 4);
+        // set the body in the HttpRequest object
+        setBody(body);
+    } else {
+        // if there's no body in the request, set it to an empty string
+        setBody("");
+    }
+
+    // extract the method, URI, and HTTP version (can be extracted from the message directly)
+    size_t method_end = message.find(" ");
+    size_t uri_end = message.find(" ", method_end + 1);
+    size_t proto_end = message.find("\r\n", uri_end + 1);
+
+    // extract method, URI, and HTTP version
+    std::string method = message.substr(0, method_end);
+    std::string uri = message.substr(method_end + 1, uri_end - method_end - 1);
+    std::string proto = message.substr(uri_end + 1, proto_end - uri_end - 1);
+
+    // set the values in the HttpRequest object
+    setMethod(method);
+    setUri(uri);
+    setProto(proto);
+
+    // set headers by parsing request
+    std::vector<HttpHeader> newHeaders = {};
+    extractHttpHeader(newHeaders, message);
+    setHeaders(newHeaders); // setting headers after each request
+    setParams("");          // resetting params after each request
+    setParams(uri);         // parse url params and set them for the request
+    parseCookies(headers);
+    // setting main route for lookup
+    setUri(extractMainRoute(uri));
+
+    // Set route template parameters
+    std::string routeTemplate = findMatchingRouteTemplate(uri);
+    setRouteTemplateParams(routeTemplate, uri);
+};
+
+// helper Methods
+void Request::extractHttpHeader(std::vector<HttpHeader> &headerVector, const std::string &message) {
+    for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
+        // Get header name (from the message) and its value
+        headerVector.clear();
+        std::istringstream stream(message);
+        std::string line;
+
+        // Skip the request line (first line)
+        std::getline(stream, line);
+
+        // Loop through each subsequent line until we find an empty line
+        while (std::getline(stream, line) && !line.empty() && line != "\r") {
+            // Each header line is in the format: "Header-Name: Header-Value"
+            size_t colonPos = line.find(":");
+            if (colonPos != std::string::npos) {
+                std::string name = line.substr(0, colonPos);
+                std::string value = line.substr(colonPos + 1);
+
+                // Trim any leading whitespace in the value
+                size_t firstNonSpace = value.find_first_not_of(" \t");
+                if (firstNonSpace != std::string::npos) {
+                    value = value.substr(firstNonSpace);
+                }
+                headerVector.push_back({name, value});
+            }
+        }
+    }
+};
+
+std::string Request::extractMainRoute(const std::string &url) {
+    size_t queryPos = url.find('?');
+    if (queryPos != std::string::npos) {
+        return url.substr(0, queryPos);
+    } else {
+        return url;
+    }
+};
 
 // Returns the value of a specific query parameter by key
 std::string Request::returnParamValue(const std::string &paramKey) const {
@@ -144,26 +212,6 @@ std::string Request::getHeaderValue(const std::string &name) const {
         }
     }
     return "";
-}
-
-void Request::parseCookies(const std::vector<HttpHeader> &headers) {
-    for (const auto &header : headers) {
-        if (header.name == "Cookie") {
-            std::istringstream cookieStream(header.value);
-            std::string cookiePair;
-            while (std::getline(cookieStream, cookiePair, ';')) {
-                size_t eq_pos = cookiePair.find('=');
-                if (eq_pos != std::string::npos) {
-                    std::string name = cookiePair.substr(0, eq_pos);
-                    std::string value = cookiePair.substr(eq_pos + 1);
-                    trim(name);  // Optional utility function to remove leading/trailing whitespace
-                    trim(value); // Apply trimming to clean up spaces around cookies
-                    setSingleCookie(name, value); // Assume `setCookie` is defined in `HttpRequest`
-                }
-            }
-            break; // only process the first "Cookie" header
-        }
-    }
 }
 
 // Split a string into segments by a delimiter

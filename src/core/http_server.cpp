@@ -130,15 +130,6 @@ bool HttpServer::listenSocket() {
     return true;
 }
 
-std::string extractMainRoute(const std::string &url) {
-    size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos) {
-        return url.substr(0, queryPos);
-    } else {
-        return url;
-    }
-}
-
 void closeSocket(int client_socket) {
 #ifdef __linux__
     close(client_socket);
@@ -219,67 +210,19 @@ void HttpServer::handleRequest(int client_socket) {
     httpResponse.reset();
 
     std::string requestMessage = readSocket(client_socket);
-    httpRequest.setMessage(requestMessage); // Store the request message in the HttpMessage struct
+
+    // store the request message in the HttpMessage struct
+    httpRequest.buildRequest(requestMessage);
 
     // print request
     std::cout << "HTTP REQUEST MESSAGE: \n"
-              << httpRequest.getMessage() << std::endl; // Log the raw request message
+              << httpRequest.message << std::endl; // Log the raw request message
 
-    // extract the method, URI, and HTTP version (can be extracted from the message directly)
-    size_t method_end = httpRequest.getMessage().find(" ");
-    size_t uri_end = httpRequest.getMessage().find(" ", method_end + 1);
-    size_t proto_end = httpRequest.getMessage().find("\r\n", uri_end + 1);
-
-    // ensure each part is found
-    if (method_end == std::string::npos || uri_end == std::string::npos ||
-        proto_end == std::string::npos) {
-
-        std::string error_message = "Malformed request line";
-        httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
-        httpResponse.status(400).send(error_message);
-        handleResponse(client_socket);
-        return; // stop processing this request
-    }
-
-    // find the body of the request
-    size_t body_start = httpRequest.getMessage().find("\r\n\r\n");
-    if (body_start != std::string::npos) {
-        // the body starts after the "\r\n\r\n" sequence
-        std::string body = httpRequest.getMessage().substr(body_start + 4);
-
-        // set the body in the HttpRequest object
-        httpRequest.setBody(body);
-
-    } else {
-        // if there's no body in the request, set it to an empty string
-        httpRequest.setBody("");
-    }
-
-    // extract method, URI, and HTTP version
-    std::string method = httpRequest.getMessage().substr(0, method_end);
-    std::string uri = httpRequest.getMessage().substr(method_end + 1, uri_end - method_end - 1);
-    std::string proto = httpRequest.getMessage().substr(uri_end + 1, proto_end - uri_end - 1);
-
-    // set the values in the HttpRequest object
-    httpRequest.setMethod(method);
-    httpRequest.setUri(uri);
-    httpRequest.setProto(proto);
-
-    // set headers by parsing request
-    std::vector<HttpHeader> newHeaders = {};
-    extractHttpHeader(newHeaders, httpRequest.getMessage());
-    httpRequest.setHeaders(newHeaders);          // setting headers after each request
-    httpRequest.setParams("");                   // resetting params after each request
-    httpRequest.setParams(httpRequest.getUri()); // parse url params and set them for the request
-    httpRequest.parseCookies(httpRequest.getHeaders());
-    httpResponse.setRequestMethod(
-        httpRequest.getMethod()); // passing request method to response for validation
-
-    // setting main route for lookup
-    httpRequest.setUri(extractMainRoute(httpRequest.getUri()));
+    // passing request method to response for validation
+    httpResponse.setRequestMethod(httpRequest.method);
 
     if (!router.handleRoute(httpRequest, httpResponse)) {
-        logger::error("Route not found: " + httpRequest.getUri());
+        logger::error("Route not found: " + httpRequest.uri);
         httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
         httpResponse.status(404).send("Route not found!");
     }
@@ -330,36 +273,6 @@ void HttpServer::acceptConnections() {
             coroutine.wait();
             threaded_coroutines::yield(); // Yield after each iteration
         });
-    }
-}
-
-void HttpServer::extractHttpHeader(std::vector<HttpHeader> &headerVector,
-                                   const std::string &message) {
-    for (int i = 0; i < MAX_HTTP_HEADERS; ++i) {
-        // Get header name (from the message) and its value
-        headerVector.clear();
-        std::istringstream stream(message);
-        std::string line;
-
-        // Skip the request line (first line)
-        std::getline(stream, line);
-
-        // Loop through each subsequent line until we find an empty line
-        while (std::getline(stream, line) && !line.empty() && line != "\r") {
-            // Each header line is in the format: "Header-Name: Header-Value"
-            size_t colonPos = line.find(":");
-            if (colonPos != std::string::npos) {
-                std::string name = line.substr(0, colonPos);
-                std::string value = line.substr(colonPos + 1);
-
-                // Trim any leading whitespace in the value
-                size_t firstNonSpace = value.find_first_not_of(" \t");
-                if (firstNonSpace != std::string::npos) {
-                    value = value.substr(firstNonSpace);
-                }
-                headerVector.push_back({name, value});
-            }
-        }
     }
 }
 
