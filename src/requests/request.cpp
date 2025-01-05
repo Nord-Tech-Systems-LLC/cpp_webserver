@@ -105,10 +105,8 @@ void Request::parseCookies(const std::unordered_map<std::string, std::string> &h
 }
 
 void Request::buildRequest(std::string &message, Router &router) {
+    // set main message of request for building
     setMessage(message);
-
-    // print request
-    std::cout << "HTTP REQUEST MESSAGE: \n" << message << std::endl; // Log the raw request message
 
     // find the body of the request
     size_t body_start = message.find("\r\n\r\n");

@@ -27,9 +27,9 @@ std::string returnCurrentTimeAndDate() {
     return ss.str();
 }
 
-void log(const std::string &message, const char *functionName = __builtin_FUNCTION()) {
-    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "]["
-              << functionName << "]: " << message << "\n";
+void log(const std::string &message) {
+    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "]: " << message
+              << "\n";
 }
 
 void error(const std::string &errorMessage, const char *functionName = __builtin_FUNCTION()) {

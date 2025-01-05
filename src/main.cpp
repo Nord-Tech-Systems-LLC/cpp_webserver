@@ -59,8 +59,8 @@ void user_controller(HttpServer &server) {
 int main() {
     HttpServer server("127.0.0.1", "8080");
     server.middleware({{"Access-Control-Allow-Origin", "*"}}); // set global header config
-    server.use(                                                // set middleware
-        [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
+    // server.use(                                                // set middleware
+    //     [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
     user_controller(server); // load route controller
     server.printRoutes();
     server.start(); // start server

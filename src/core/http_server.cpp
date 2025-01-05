@@ -23,6 +23,43 @@
 #include <string>
 #include <thread>
 
+/**
+ * Helper method to log requests
+ * @param method = method used in request
+ * @param uri = uri link of request
+ * @param protocol = protocol of request
+ * @param status = status code sent to client
+ * @param responseSize = body response content length
+ * @param referer = referer header of request
+ * @param userAgent = user agent used to communicate with request
+ * @param processingTime = processing time of request
+ */
+std::string toSummaryFormat(std::string method,
+                            std::string uri,
+                            std::string protocol,
+                            int status,
+                            size_t responseSize,
+                            std::string referer,
+                            std::string userAgent,
+                            std::string processingTime) {
+    std::ostringstream output;
+
+    // Example format: "GET /?p=1 HTTP/2.0" 200 5316 "https://domain1.com/?p=1" "Mozilla/5.0 ..."
+    // "2.75"
+    // Constructing the formatted output
+    output << "\"" << method << " " << uri << " " << protocol << "\" " << status << " "
+           << responseSize << " "
+           << "\"" << referer << "\" "
+           << "\"" << userAgent << "\" "
+           << "\"" << processingTime << "\"";
+
+    return output.str();
+}
+
+/**
+ * Http server
+ */
+
 HttpServer::HttpServer(const char *ip_address, const char *port)
     : ip_address(ip_address), port(port), server_socket(0) {
 }
@@ -229,18 +266,17 @@ void HttpServer::handleRequest(int client_socket) {
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end_time - start_time;
 
-    // log the duration
-    logger::log("Request handled in " + std::to_string(elapsed.count()) + " seconds");
+    logger::log(toSummaryFormat(httpRequest.method,
+                                httpRequest.uri,
+                                httpRequest.proto,
+                                httpResponse.getStatusCode(),
+                                httpResponse.getBody().size(),
+                                httpRequest.getHeaderValue("Referer"),
+                                httpRequest.getHeaderValue("User-Agent"),
+                                std::to_string(elapsed.count()) + "s"));
 }
 
 void HttpServer::handleResponse(int client_socket) {
-    // print response headers
-    logger::log("Response Headers:\n");
-    for (const auto &header : httpResponse.getHeaders()) {
-        std::cout << header.first + ": " + header.second << "\n";
-    }
-    std::cout << std::endl;
-
     sendSocket(client_socket, httpResponse.getBody().c_str());
 }
 
@@ -256,8 +292,6 @@ void HttpServer::acceptConnections() {
     while (true) {
         int client_socket =
             accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
-        logger::section("NEW REQUEST");
-        logger::log("Received request from: " + std::to_string(client_socket));
         if (client_socket == -1) {
             perror("Accept failed");
             break;
