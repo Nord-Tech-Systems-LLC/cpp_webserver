@@ -254,7 +254,13 @@ void HttpServer::handleRequest(int client_socket) {
     // passing request method to response for validation
     httpResponse.setRequestMethod(httpRequest.method);
 
-    if (!router.handleRoute(httpRequest, httpResponse)) {
+    if (httpRequest.method == "OPTIONS") {
+        httpResponse.setSingleHeader("Access-Control-Allow-Origin", "*");
+        httpResponse.setSingleHeader("Access-Control-Allow-Methods",
+                                     "OPTIONS, GET, HEAD, POST"); // Allow the method registered
+        httpResponse.setSingleHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        httpResponse.status(204).send(""); // No Content
+    } else if (!router.handleRoute(httpRequest, httpResponse)) {
         logger::error("Route not found: " + httpRequest.uri);
         httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
         httpResponse.status(404).send("Route not found!");
