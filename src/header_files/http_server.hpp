@@ -38,6 +38,10 @@ class HttpServer {
     void handleResponse(int client_socket);
     void acceptConnections();
 
+    // client and server helpers
+    std::string getServerIP(int client_socket);
+    std::string getClientIP(int client_socket);
+
     // request & response
     Router router;
     Request httpRequest;

@@ -89,6 +89,56 @@ void HttpServer::start() {
 #endif
 }
 
+// gets the server IP
+std::string HttpServer::getServerIP(int client_socket) {
+    struct sockaddr_storage addr;
+    socklen_t len = sizeof(addr);
+
+    if (getsockname(client_socket, (struct sockaddr *)&addr, &len) == -1) {
+        perror("getsockname failed");
+        return "";
+    }
+
+    char ipstr[INET6_ADDRSTRLEN];
+
+    if (addr.ss_family == AF_INET) {
+        struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+        inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+        return std::string(ipstr) + ":" + std::to_string(ntohs(s->sin_port));
+    } else if (addr.ss_family == AF_INET6) {
+        struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
+        inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+        return std::string(ipstr) + ":" + std::to_string(ntohs(s->sin6_port));
+    }
+
+    return "Unknown";
+}
+
+// gets the client IP
+std::string HttpServer::getClientIP(int client_socket) {
+    struct sockaddr_storage addr;
+    socklen_t len = sizeof(addr);
+
+    if (getpeername(client_socket, (struct sockaddr *)&addr, &len) == -1) {
+        perror("getpeername failed");
+        return "";
+    }
+
+    char ipstr[INET6_ADDRSTRLEN];
+
+    if (addr.ss_family == AF_INET) {
+        struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+        inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+        return std::string(ipstr) + ":" + std::to_string(ntohs(s->sin_port));
+    } else if (addr.ss_family == AF_INET6) {
+        struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
+        inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+        return std::string(ipstr) + ":" + std::to_string(ntohs(s->sin6_port));
+    }
+
+    return "Unknown";
+}
+
 // helper function to convert a struct sockaddr address to a string, IPv4 and IPv6
 char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
     switch (sa->sa_family) {
@@ -302,6 +352,10 @@ void HttpServer::acceptConnections() {
             perror("Accept failed");
             break;
         }
+
+        // get client and server IP
+        std::cout << "Source IP: " << getClientIP(client_socket) << std::endl;
+        std::cout << "Destination IP: " << getServerIP(client_socket) << std::endl;
 
         // start a new thread for each connection
         threaded_coroutines::Coroutine coroutine([&]() {
