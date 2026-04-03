@@ -4,6 +4,7 @@
 // linux libraries
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h> // for TCP_INFO
 #include <sys/socket.h>
 #include <unistd.h>
 #elif _WIN32
@@ -229,6 +230,9 @@ std::string readSocket(int client_socket) {
     std::string data;
     char buffer[4096];
 
+    // Ancillary data buffer for TCP info
+    char cmsgbuf[CMSG_SPACE(sizeof(struct tcp_info))];
+
 #ifdef __linux__
     ssize_t bytes_read;
 #elif _WIN32
@@ -353,16 +357,34 @@ void HttpServer::acceptConnections() {
             break;
         }
 
-        // get client and server IP
-        std::cout << "Source IP: " << getClientIP(client_socket) << std::endl;
-        std::cout << "Destination IP: " << getServerIP(client_socket) << std::endl;
+        // Get client and server IPs
+        std::string srcIP = getClientIP(client_socket);
+        std::string dstIP = getServerIP(client_socket);
 
-        // start a new thread for each connection
-        threaded_coroutines::Coroutine coroutine([&]() {
-            handleRequest(client_socket);
-            coroutine.wait();
-            threaded_coroutines::yield(); // Yield after each iteration
-        });
+#ifdef __linux__
+        // --- TCP info using getsockopt ---
+        struct tcp_info info;
+        socklen_t info_len = sizeof(info);
+        std::string tcpState = "Unknown";
+        int rtt_us = 0;
+        int retransmits = 0;
+        int cwnd = 0;
+
+        if (getsockopt(client_socket, IPPROTO_TCP, TCP_INFO, &info, &info_len) == 0) {
+            rtt_us = info.tcpi_rtt; // RTT in microseconds
+            retransmits = static_cast<int>(info.tcpi_retransmits);
+            cwnd = info.tcpi_snd_cwnd; // Congestion window
+        }
+
+        std::cout << "[Connection] " << srcIP << " -> " << dstIP
+                  << " | Retransmits: " << retransmits << " | CWND: " << cwnd << std::endl;
+#else
+        std::cout << "[Connection] " << srcIP << " -> " << dstIP
+                  << " | TCP info unavailable on this platform" << std::endl;
+#endif
+
+        // --- Start a new thread for each connection ---
+        std::thread([this, client_socket]() { handleRequest(client_socket); }).detach();
     }
 }
 
