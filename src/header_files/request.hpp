@@ -24,15 +24,19 @@ class Request {
     std::string message; // full request message (head + body)
 
     // parsed query and path parameters for easier access
-    std::unordered_map<std::string, std::string> headers;     // headers as vector of HttpHeader
-    std::unordered_map<std::string, std::string> queryParams; // ex: ?userId=123&bookId=456
+    std::unordered_map<std::string, std::string> headers;             // headers as vector of HttpHeader
+    std::unordered_map<std::string, std::string> queryParams;         // ex: ?userId=123&bookId=456
     std::unordered_map<std::string, std::string> routeTemplateParams; // ex: /users/123/books/456
     std::unordered_map<std::string, std::string> cookies;
 
-    // build request for server
+    // Public method setter — needed by the server to implement HEAD→GET rewrite
+    // (RFC 2616 §9.4: HEAD uses GET handler, response body is then stripped)
+    void setMethod(const std::string &newMethod);
+
+    // Build the request from a raw socket message
     void buildRequest(std::string &message, Router &router);
 
-    // utility to get specific header value by name
+    // Return a specific header value by name (empty string if absent)
     std::string getHeaderValue(const std::string &name) const;
 
     // reset function
@@ -40,7 +44,6 @@ class Request {
 
   private:
     // setters
-    void setMethod(const std::string &newMethod);
     void setUri(const std::string &newUri);
     void setProto(const std::string &newProto);
     void setHeaders(const std::unordered_map<std::string, std::string> &newHeaders);

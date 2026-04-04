@@ -87,9 +87,7 @@ Coroutine *Coroutine::current() {
 }
 
 void yield() {
-    if (Coroutine::current()) {
-        Coroutine::current()->yield();
-    }
+    if (Coroutine::current()) { Coroutine::current()->yield(); }
 }
 
 } // namespace threaded_coroutines

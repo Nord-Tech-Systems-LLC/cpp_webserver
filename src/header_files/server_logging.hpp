@@ -9,11 +9,8 @@ class MyCustomException : public std::exception {
     const char *message;
 
   public:
-    MyCustomException(const char *msg) : message(msg) {
-    }
-    const char *what() {
-        return message;
-    }
+    MyCustomException(const char *msg) : message(msg) {}
+    const char *what() { return message; }
 };
 
 namespace logger {

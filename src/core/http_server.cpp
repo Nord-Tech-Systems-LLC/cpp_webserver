@@ -24,62 +24,132 @@
 #include <string>
 #include <thread>
 
-/**
- * Helper method to log requests
- * @param method = method used in request
- * @param uri = uri link of request
- * @param protocol = protocol of request
- * @param status = status code sent to client
- * @param responseSize = body response content length
- * @param referer = referer header of request
- * @param userAgent = user agent used to communicate with request
- * @param processingTime = processing time of request
- */
-std::string toSummaryFormat(std::string method,
-                            std::string uri,
-                            std::string protocol,
-                            int status,
-                            size_t responseSize,
-                            std::string referer,
-                            std::string userAgent,
-                            std::string processingTime) {
-    std::ostringstream output;
+// ─────────────────────────────────────────────────────────────────────────────
+//  Utilities
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // Example format: "GET /?p=1 HTTP/2.0" 200 5316 "https://domain1.com/?p=1" "Mozilla/5.0 ..."
-    // "2.75"
-    // Constructing the formatted output
-    output << "\"" << method << " " << uri << " " << protocol << "\" " << status << " "
-           << responseSize << " "
-           << "\"" << referer << "\" "
-           << "\"" << userAgent << "\" "
-           << "\"" << processingTime << "\"";
+// RFC 2616 §14.18 — RFC 1123 GMT date string required on every response.
+static std::string httpDate() {
 
-    return output.str();
+    // Format is RFC 1123: "Thu, 01 Jan 1970 00:00:00 GMT"
+    std::time_t now = std::time(nullptr);
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+    return buf;
+}
+
+// Combined Log Format: "METHOD URI PROTO" STATUS BYTES "Referer" "UA" "time"
+static std::string toSummaryFormat(const std::string &method, const std::string &uri, const std::string &proto,
+                                   int status, size_t bytes, const std::string &referer, const std::string &ua,
+                                   const std::string &elapsed) {
+    std::ostringstream o;
+    o << '"' << method << ' ' << uri << ' ' << proto << "\" " << status << ' ' << bytes << " \"" << referer << "\" \""
+      << ua << "\" \"" << elapsed << '"';
+    return o.str();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Low-level socket I/O  (free functions — no shared HttpServer state)
+// ─────────────────────────────────────────────────────────────────────────────
+
+static void closeSocket(int fd) {
+#ifdef __linux__
+    close(fd);
+#elif _WIN32
+    closesocket(fd);
+#endif
 }
 
 /**
- * Http server
+ * Read one complete HTTP request from the socket.
+ *
+ * RFC 2616 §4.4 — message-body length rules:
+ *   Phase 1: Read until the blank line ("\r\n\r\n") that ends the headers.
+ *   Phase 2: If Content-Length is present, read exactly that many body bytes.
  */
+static std::string readSocket(int fd) {
+    std::string data;
+    char buf[4096];
+
+    // ── Phase 1: headers ─────────────────────────────────────────────────
+    while (true) {
+        memset(buf, 0, sizeof(buf));
+#ifdef __linux__
+        ssize_t n = recv(fd, buf, sizeof(buf) - 1, 0);
+#elif _WIN32
+        SSIZE_T n = recv(fd, buf, sizeof(buf) - 1, 0);
+#endif
+        if (n < 0) throw std::runtime_error("Error reading from socket");
+        if (n == 0) break;
+        data.append(buf, n);
+        if (data.find("\r\n\r\n") != std::string::npos) break;
+    }
+
+    size_t headerEnd = data.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) return data;
+
+    std::string headerSection = data.substr(0, headerEnd);
+    std::string bodyAlreadyRead = data.substr(headerEnd + 4);
+
+    // ── Phase 2: body (Content-Length, case-insensitive search) ──────────
+    auto toLower = [](std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        return s;
+    };
+    std::string lowerHeaders = toLower(headerSection);
+    size_t clPos = lowerHeaders.find("content-length:");
+    if (clPos != std::string::npos) {
+        size_t vs = headerSection.find(':', clPos) + 1;
+        size_t ve = headerSection.find("\r\n", vs);
+        std::string clVal = headerSection.substr(vs, ve == std::string::npos ? ve : ve - vs);
+        trim(clVal);
+
+        size_t contentLength = 0;
+        try {
+            contentLength = std::stoul(clVal);
+        } catch (...) {}
+
+        while (bodyAlreadyRead.size() < contentLength) {
+            size_t needed = contentLength - bodyAlreadyRead.size();
+            size_t toRead = std::min(needed, sizeof(buf) - 1);
+            memset(buf, 0, sizeof(buf));
+#ifdef __linux__
+            ssize_t n = recv(fd, buf, toRead, 0);
+#elif _WIN32
+            SSIZE_T n = recv(fd, buf, toRead, 0);
+#endif
+            if (n <= 0) break;
+            bodyAlreadyRead.append(buf, n);
+        }
+        data = headerSection + "\r\n\r\n" + bodyAlreadyRead;
+    }
+
+    return data;
+}
+
+// Sends all bytes; does NOT close fd (keep-alive requires caller to own lifetime).
+static void sendSocket(int fd, const std::string &data) {
+    // required for RFC 2616 §8.1 persistent connections).
+    size_t sent = 0;
+    while (sent < data.size()) {
+#ifdef __linux__
+        ssize_t n = send(fd, data.c_str() + sent, data.size() - sent, 0);
+#elif _WIN32
+        SSIZE_T n = send(fd, data.c_str() + sent, data.size() - sent, 0);
+#endif
+        if (n < 0) throw std::runtime_error("Error sending data to socket");
+        sent += static_cast<size_t>(n);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  HttpServer — construction / destruction
+// ─────────────────────────────────────────────────────────────────────────────
 
 HttpServer::HttpServer(const char *ip_address, const char *port)
-    : ip_address(ip_address), port(port), server_socket(0) {
-}
+    : ip_address(ip_address), port(port), server_socket(0) {}
 
-void HttpServer::start() {
-#ifdef _WIN32
-    // Initialize Winsock
-    WSADATA wsa;
-    int init_winsock = WSAStartup(MAKEWORD(2, 0), &wsa);
-    if (init_winsock != 0) {
-        printf("WSAStartup failed: %d\n", init_winsock);
-    }
-#endif
-
-    if (createSocket() && bindSocket() && listenSocket()) {
-        std::cout << "Server listening on port " << port << std::endl;
-        acceptConnections();
-    }
-
+HttpServer::~HttpServer() {
 // close the server socket
 #ifdef __linux__
     close(server_socket);
@@ -89,6 +159,55 @@ void HttpServer::start() {
     WSACleanup();
 #endif
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Socket lifecycle
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool HttpServer::createSocket() {
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1) {
+        perror("Socket creation failed");
+        return false;
+    }
+    return true;
+}
+
+bool HttpServer::bindSocket() {
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(ip_address);
+    addr.sin_port = htons(std::stoi(port));
+
+#ifdef __linux__
+    int opt = 1;
+#elif _WIN32
+    const char opt = 1;
+#endif
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("Setsockopt failed");
+        return false;
+    }
+    if (bind(server_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        perror("Bind failed");
+        return false;
+    }
+    return true;
+}
+
+bool HttpServer::listenSocket() {
+    // Use MAX_CONNECTIONS as the backlog so the kernel can queue up to that many
+    if (listen(server_socket, MAX_CONNECTIONS) == -1) {
+        perror("Listen failed");
+        return false;
+    }
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  IP helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 // gets the server IP
 std::string HttpServer::getServerIP(int client_socket) {
@@ -162,237 +281,234 @@ char *HttpServer::get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) 
     return s;
 }
 
-void HttpServer::printRoutes() {
-    router.printRoutes();
-}
+// ─────────────────────────────────────────────────────────────────────────────
+//  Server entry point
+// ─────────────────────────────────────────────────────────────────────────────
 
-bool HttpServer::createSocket() {
-    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Socket creation failed");
-        return false;
-    }
-    return true;
-}
-
-bool HttpServer::bindSocket() {
-    // the sockaddr_in structure specifies the address family
-    struct sockaddr_in server_address;
-
-    // resets server address
-    memset(&server_address, 0, sizeof(server_address));
-
-    // sets IP address, and port to be connected to
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr(ip_address);
-    server_address.sin_port = htons(std::stoi(port));
-
-// set SO_REUSEADDR option to reuse address and prevent being able to start up
-#ifdef __linux__
-    int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        perror("Setsockopt failed");
-        return false;
-    }
-#elif _WIN32
-    const char opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        perror("Setsockopt failed");
-        return false;
-    }
+void HttpServer::start() {
+#ifdef _WIN32
+    // Initialize Winsock
+    WSADATA wsa;
+    int init_winsock = WSAStartup(MAKEWORD(2, 0), &wsa);
+    if (init_winsock != 0) { printf("WSAStartup failed: %d\n", init_winsock); }
 #endif
 
-    // binding socket
-    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1) {
-        perror("Bind failed");
-        return false;
+    if (createSocket() && bindSocket() && listenSocket()) {
+        std::cout << "Server listening on port " << port << std::endl;
+        acceptConnections();
     }
 
-    return true;
-}
-
-bool HttpServer::listenSocket() {
-    if (listen(server_socket, 10) == -1) {
-        perror("Listen failed");
-        return false;
-    }
-    return true;
-}
-
-void closeSocket(int client_socket) {
+// close the server socket
 #ifdef __linux__
-    close(client_socket);
+    close(server_socket);
 #elif _WIN32
-    closesocket(client_socket);
+    closesocket(server_socket);
+    // cleanup Winsock
+    WSACleanup();
 #endif
 }
 
-std::string readSocket(int client_socket) {
-    std::string data;
-    char buffer[4096];
+// ─────────────────────────────────────────────────────────────────────────────
+//  Accept loop
+//
+//  RFC 2616 §8.1.4 — servers SHOULD limit simultaneous connections.
+//  If MAX_CONNECTIONS is reached the new socket gets an immediate 503 and
+//  is closed, so the client gets a proper error rather than hanging.
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // Ancillary data buffer for TCP info
-    char cmsgbuf[CMSG_SPACE(sizeof(struct tcp_info))];
-
+void HttpServer::acceptConnections() {
+    struct sockaddr_storage clientAddr;
 #ifdef __linux__
-    ssize_t bytes_read;
+    socklen_t addrLen = sizeof(clientAddr);
 #elif _WIN32
-    SSIZE_T bytes_read;
+    int addrLen = sizeof(clientAddr);
 #endif
 
     while (true) {
-        memset(buffer, 0, sizeof(buffer));
-        bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
-
-        if (bytes_read < 0) {
-            throw std::runtime_error("Error reading from socket");
-        } else if (bytes_read == 0) {
-            // End of stream
+        int clientFd = accept(server_socket, (struct sockaddr *)&clientAddr, &addrLen);
+        if (clientFd == -1) {
+            perror("Accept failed");
             break;
         }
 
-        data.append(buffer, bytes_read);
-
-        // Check for end of HTTP request (empty line after headers)
-        if (data.find("\r\n\r\n") != std::string::npos) {
-            break;
-        }
-    }
-
-    return data;
-}
-
-void sendSocket(int client_socket, const std::string &data) {
-    size_t totalBytesSent = 0;
-    size_t dataSize = data.size();
-
-    while (totalBytesSent < dataSize) {
+        std::string srcIP = getClientIP(clientFd);
+        std::string dstIP = getServerIP(clientFd);
 
 #ifdef __linux__
-        ssize_t bytesSent;
-#elif _WIN32
-        SSIZE_T bytesSent;
-#endif
-        bytesSent =
-            send(client_socket, data.c_str() + totalBytesSent, dataSize - totalBytesSent, 0);
-        if (bytesSent < 0) {
-            throw std::runtime_error("Error sending data to socket");
+        // Log TCP diagnostics available on Linux
+        struct tcp_info ti{};
+        socklen_t tiLen = sizeof(ti);
+        if (getsockopt(clientFd, IPPROTO_TCP, TCP_INFO, &ti, &tiLen) == 0) {
+            char src[INET6_ADDRSTRLEN]{}, dst[INET6_ADDRSTRLEN]{};
+            struct sockaddr_storage a{};
+            socklen_t l = sizeof(a);
+            getpeername(clientFd, (struct sockaddr *)&a, &l);
+            inet_ntop(a.ss_family,
+                      a.ss_family == AF_INET ? (void *)&((sockaddr_in *)&a)->sin_addr
+                                             : (void *)&((sockaddr_in6 *)&a)->sin6_addr,
+                      src, sizeof(src));
+            getsockname(clientFd, (struct sockaddr *)&a, &l);
+            inet_ntop(a.ss_family,
+                      a.ss_family == AF_INET ? (void *)&((sockaddr_in *)&a)->sin_addr
+                                             : (void *)&((sockaddr_in6 *)&a)->sin6_addr,
+                      dst, sizeof(dst));
+            std::cout << "[Connection] " << src << " -> " << dst << " | Retransmits: " << (int)ti.tcpi_retransmits
+                      << " | CWND: " << (int)ti.tcpi_snd_cwnd << '\n';
         }
-        totalBytesSent += bytesSent;
+#else
+        std::cout << "[Connection] " << srcIP << " -> " << dstIP << " | TCP info unavailable on this platform\n";
+#endif
+
+        // Enforce connection cap — return 503 immediately and move on
+        if (activeConnections.load() >= MAX_CONNECTIONS) {
+            const std::string busy = "HTTP/1.1 503 Service Unavailable\r\n"
+                                     "Content-Length: 0\r\nConnection: close\r\n\r\n";
+            try {
+                sendSocket(clientFd, busy);
+            } catch (...) {}
+            closeSocket(clientFd);
+            continue;
+        }
+
+        activeConnections++;
+        // Each connection gets its own thread. Request & Response objects are
+        // created inside handleConnection — no shared mutable state.
+        std::thread([this, clientFd]() {
+            handleConnection(clientFd);
+            activeConnections--;
+        }).detach();
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Per-connection handler — implements HTTP/1.1 persistent connections
+//
+//  RFC 2616 §8.1 — connections are persistent by default in HTTP/1.1.
+//  The loop continues serving requests on the same socket until:
+//    • client or server sends  Connection: close
+//    • the keep-alive idle timeout fires  (SO_RCVTIMEO)
+//    • a read / write error occurs
+// ─────────────────────────────────────────────────────────────────────────────
+
+void HttpServer::handleConnection(int fd) {
+    // Idle keep-alive timeout — recv returns EAGAIN when it fires
+    struct timeval tv{KEEPALIVE_TIMEOUT_SEC, 0};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+
+    bool keepAlive = true;
+    while (keepAlive) {
+        Request req;
+        Response res;
+        res.setSingleHeader("Date", httpDate());
+        res.setSingleHeader("Server", "CppWebServer/1.0");
+
+        std::string raw;
+        try {
+            raw = readSocket(fd);
+        } catch (...) { break; }
+        if (raw.empty()) break;
+
+        handleRequest(raw, req, res);
+
+        std::string conn = req.getHeaderValue("Connection");
+        std::transform(conn.begin(), conn.end(), conn.begin(), ::tolower);
+        keepAlive = (conn != "close");
+        res.setSingleHeader("Connection", keepAlive ? "keep-alive" : "close");
+
+        handleResponse(fd, res);
     }
 
-    // close the server socket
-    closeSocket(client_socket);
+    closeSocket(fd);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Single request / response cycle
+// ─────────────────────────────────────────────────────────────────────────────
+
+void HttpServer::handleRequest(const std::string &raw, Request &req, Response &res) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    req.buildRequest(const_cast<std::string &>(raw), router);
+    res.setRequestMethod(req.method);
+
+    // RFC 2616 §14.23 — reject HTTP/1.1 without Host
+    if (req.proto == "HTTP/1.1" && req.getHeaderValue("Host").empty()) {
+        res.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
+        res.status(400).send("Bad Request: missing Host header");
+        return;
+    }
+
+    // RFC 2616 §9.4 — HEAD reuses the GET handler; body is stripped after
+    const bool isHead = (req.method == "HEAD");
+    if (isHead) req.setMethod("GET");
+
+    if (req.method == "OPTIONS") {
+        // RFC 2616 §9.2 — reflect actual allowed methods for this URI
+        auto methods = router.allowedMethods(req.uri);
+        std::string allow;
+        for (size_t i = 0; i < methods.size(); ++i) {
+            if (i) allow += ", ";
+            allow += methods[i];
+        }
+        res.setSingleHeader("Allow", allow);
+        res.setSingleHeader("Access-Control-Allow-Origin", "*");
+        res.setSingleHeader("Access-Control-Allow-Methods", allow);
+        res.setSingleHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.status(204).send("");
+
+    } else if (!router.handleRoute(req, res)) {
+        auto methods = router.allowedMethods(req.uri);
+        if (!methods.empty()) {
+            // RFC 2616 §10.4.6 — 405 must include Allow header
+            std::string allow;
+            for (size_t i = 0; i < methods.size(); ++i) {
+                if (i) allow += ", ";
+                allow += methods[i];
+            }
+            res.setSingleHeader("Allow", allow);
+            res.setHeaders({{"Content-Type", "text/plain"}});
+            res.status(405).send("Method Not Allowed");
+        } else {
+            logger::error("Route not found: " + req.uri);
+            res.setHeaders({{"Content-Type", "text/plain"}});
+            res.status(404).send("Not Found");
+        }
+    }
+
+    if (isHead) {
+        res.setBody("");
+        req.setMethod("HEAD");
+    }
+
+    double elapsed = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t0).count();
+    logger::log(toSummaryFormat(req.method, req.uri, req.proto, res.getStatusCode(), res.getBody().size(),
+                                req.getHeaderValue("Referer"), req.getHeaderValue("User-Agent"),
+                                std::to_string(elapsed) + "s"));
+}
+
+void HttpServer::handleResponse(int clientFd, Response &res) {
+    try {
+        sendSocket(clientFd, res.getBody());
+    } catch (const std::exception &e) { logger::error(std::string("handleResponse send error: ") + e.what()); }
+    // Do NOT close the socket here. handleConnection owns the socket lifetime
+    // so subsequent keep-alive requests can reuse it.
+}
+
+void HttpServer::printRoutes() {
+    router.printRoutes();
 }
 
 // Add new middleware method that takes a map of headers
 void HttpServer::middleware(const std::map<std::string, std::string> &headers) {
     router.use([headers](Request &req, Response &res) {
-        for (const auto &header : headers) {
-            res.setSingleHeader(header.first, header.second);
-        }
+        for (const auto &header : headers) { res.setSingleHeader(header.first, header.second); }
     });
-}
-
-void HttpServer::handleRequest(int client_socket) {
-    auto start_time = std::chrono::high_resolution_clock::now(); // Start timer
-
-    // reset request / response data
-    httpRequest.reset();
-    httpResponse.reset();
-
-    std::string requestMessage = readSocket(client_socket);
-
-    // store the request message in the HttpMessage struct
-    httpRequest.buildRequest(requestMessage, router);
-
-    // passing request method to response for validation
-    httpResponse.setRequestMethod(httpRequest.method);
-
-    if (httpRequest.method == "OPTIONS") {
-        httpResponse.setSingleHeader("Access-Control-Allow-Origin", "*");
-        httpResponse.setSingleHeader("Access-Control-Allow-Methods",
-                                     "OPTIONS, GET, HEAD, POST"); // Allow the method registered
-        httpResponse.setSingleHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        httpResponse.status(204).send(""); // No Content
-    } else if (!router.handleRoute(httpRequest, httpResponse)) {
-        logger::error("Route not found: " + httpRequest.uri);
-        httpResponse.setHeaders({{"Content-Type", "text/plain"}, {"Connection", "close"}});
-        httpResponse.status(404).send("Route not found!");
-    }
-
-    handleResponse(client_socket);
-
-    // stop timer and calculate duration
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end_time - start_time;
-
-    logger::log(toSummaryFormat(httpRequest.method,
-                                httpRequest.uri,
-                                httpRequest.proto,
-                                httpResponse.getStatusCode(),
-                                httpResponse.getBody().size(),
-                                httpRequest.getHeaderValue("Referer"),
-                                httpRequest.getHeaderValue("User-Agent"),
-                                std::to_string(elapsed.count()) + "s"));
-}
-
-void HttpServer::handleResponse(int client_socket) {
-    sendSocket(client_socket, httpResponse.getBody().c_str());
-}
-
-void HttpServer::acceptConnections() {
-    struct sockaddr_storage client_address;
-
-#ifdef __linux__
-    socklen_t client_address_len = sizeof(client_address);
-#elif _WIN32
-    int client_address_len = sizeof(client_address);
-#endif
-
-    while (true) {
-        int client_socket =
-            accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
-        if (client_socket == -1) {
-            perror("Accept failed");
-            break;
-        }
-
-        // Get client and server IPs
-        std::string srcIP = getClientIP(client_socket);
-        std::string dstIP = getServerIP(client_socket);
-
-#ifdef __linux__
-        // --- TCP info using getsockopt ---
-        struct tcp_info info;
-        socklen_t info_len = sizeof(info);
-        std::string tcpState = "Unknown";
-        int rtt_us = 0;
-        int retransmits = 0;
-        int cwnd = 0;
-
-        if (getsockopt(client_socket, IPPROTO_TCP, TCP_INFO, &info, &info_len) == 0) {
-            rtt_us = info.tcpi_rtt; // RTT in microseconds
-            retransmits = static_cast<int>(info.tcpi_retransmits);
-            cwnd = info.tcpi_snd_cwnd; // Congestion window
-        }
-
-        std::cout << "[Connection] " << srcIP << " -> " << dstIP
-                  << " | Retransmits: " << retransmits << " | CWND: " << cwnd << std::endl;
-#else
-        std::cout << "[Connection] " << srcIP << " -> " << dstIP
-                  << " | TCP info unavailable on this platform" << std::endl;
-#endif
-
-        // --- Start a new thread for each connection ---
-        std::thread([this, client_socket]() { handleRequest(client_socket); }).detach();
-    }
 }
 
 void HttpServer::get(const std::string &route, std::function<void(Request &, Response &)> handler) {
     router.get(route, handler);
 }
-void HttpServer::post(const std::string &route,
-                      std::function<void(Request &, Response &)> handler) {
+void HttpServer::post(const std::string &route, std::function<void(Request &, Response &)> handler) {
     router.post(route, handler);
 }
 void HttpServer::put(const std::string &route, std::function<void(Request &, Response &)> handler) {
@@ -409,15 +525,4 @@ void HttpServer::use(std::function<void(Request &, Response &)> handler) {
 
 void HttpServer::use(const std::string &route, std::function<void(Request &, Response &)> handler) {
     router.use(route, handler);
-}
-
-HttpServer::~HttpServer() {
-// close the server socket
-#ifdef __linux__
-    close(server_socket);
-#elif _WIN32
-    closesocket(server_socket);
-    // cleanup Winsock
-    WSACleanup();
-#endif
 }

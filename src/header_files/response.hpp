@@ -14,6 +14,38 @@ class Response {
     std::string requestMethod;
     bool sent = false;
 
+    // RFC 2616 §10 — status code registry
+    const std::map<int, std::string> http_status_codes = {
+        {100, "Continue"},
+        {101, "Switching Protocols"},
+        {200, "OK"},
+        {201, "Created"},
+        {202, "Accepted"},
+        {204, "No Content"},
+        {206, "Partial Content"},
+        {301, "Moved Permanently"},
+        {302, "Found"},
+        {304, "Not Modified"},
+        {307, "Temporary Redirect"},
+        {400, "Bad Request"},
+        {401, "Unauthorized"},
+        {403, "Forbidden"},
+        {404, "Not Found"},
+        {405, "Method Not Allowed"},
+        {408, "Request Timeout"},
+        {409, "Conflict"},
+        {410, "Gone"},
+        {411, "Length Required"},
+        {413, "Request Entity Too Large"},
+        {414, "Request-URI Too Long"},
+        {415, "Unsupported Media Type"},
+        {500, "Internal Server Error"},
+        {501, "Not Implemented"},
+        {502, "Bad Gateway"},
+        {503, "Service Unavailable"},
+        {505, "HTTP Version Not Supported"},
+    };
+
   public:
     // getters
     int getStatusCode() const;
@@ -33,8 +65,7 @@ class Response {
 
     // helper methods
     std::string contentLength(const std::string &input_body);
-    std::string buildResponse(const std::string &status,
-                              const std::map<std::string, std::string> &headers,
+    std::string buildResponse(const std::string &status, const std::map<std::string, std::string> &headers,
                               const std::string &body);
 
     void send(const std::string &content);

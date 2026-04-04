@@ -67,8 +67,8 @@ void Response::json(const std::string &jsonResponse) {
 
 void Response::send(const std::string &content) {
     // Logic to send plain text or HTML
-    std::string response = buildResponse(
-        std::to_string(status_code) + " " + std::string(status_message), headers, content);
+    std::string response =
+        buildResponse(std::to_string(status_code) + " " + std::string(status_message), headers, content);
     body = response;
     sent = true;
 }
@@ -88,16 +88,13 @@ Response &Response::status(int code) {
     return *this;
 }
 
-std::string Response::buildResponse(const std::string &status,
-                                    const std::map<std::string, std::string> &headers,
+std::string Response::buildResponse(const std::string &status, const std::map<std::string, std::string> &headers,
                                     const std::string &body) {
     // Start with the status line
     std::string response = "HTTP/1.1 " + status + "\r\n";
 
     // Append headers
-    for (const auto &header : headers) {
-        response += header.first + ": " + header.second + "\r\n";
-    }
+    for (const auto &header : headers) { response += header.first + ": " + header.second + "\r\n"; }
 
     // Content-Length is critical for HTTP/1.1 compliance
     response += "Content-Length: " + std::to_string(body.size()) + "\r\n";

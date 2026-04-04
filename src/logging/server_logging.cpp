@@ -28,17 +28,15 @@ std::string returnCurrentTimeAndDate() {
 }
 
 void log(const std::string &message) {
-    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "]: " << message
-              << "\n";
+    std::cout << green << "[LOG]" << reset << "[" << returnCurrentTimeAndDate() << "]: " << message << "\n";
 }
 
 void error(const std::string &errorMessage, const char *functionName = __builtin_FUNCTION()) {
-    std::cout << red << "[ERROR]" << reset << "[" << returnCurrentTimeAndDate() << "]["
-              << functionName << "]: " << errorMessage << "\n";
+    std::cout << red << "[ERROR]" << reset << "[" << returnCurrentTimeAndDate() << "][" << functionName
+              << "]: " << errorMessage << "\n";
 }
 
 void section(const std::string &message, const char *functionName = __builtin_FUNCTION()) {
-    std::cout << blue << "[~~~~~~~~~~~~~~~~~~~~" << message << "~~~~~~~~~~~~~~~~~~~~]" << reset
-              << "\n";
+    std::cout << blue << "[~~~~~~~~~~~~~~~~~~~~" << message << "~~~~~~~~~~~~~~~~~~~~]" << reset << "\n";
 }
 } // namespace logger
