@@ -42,11 +42,14 @@ class Request {
     // reset function
     void reset();
 
+    // public set headers
+    void setHeaders(const std::unordered_map<std::string, std::string> &newHeaders);
+
   private:
     // setters
     void setUri(const std::string &newUri);
     void setProto(const std::string &newProto);
-    void setHeaders(const std::unordered_map<std::string, std::string> &newHeaders);
+
     void setBody(const std::string &newBody);
     void setMessage(const std::string &newMessage);
     void setParams(const std::string &uri);
