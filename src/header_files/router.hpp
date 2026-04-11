@@ -2,60 +2,45 @@
 #define ROUTER_H
 
 #include "cpp_webserver_include/core.hpp"
+
 #include <functional>
-#include <map>
+#include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-class Request;  // forward declare
-class Response; // forward declare
+using Handler = std::function<void(Request &, Response &)>;
+
+struct Route {
+    std::string method;
+    std::string path;
+    Handler handler;
+};
 
 class Router {
   public:
-    Router() = default;
-    ~Router() = default;
+    void get(const std::string &path, Handler h) { add("GET", path, h); }
+    void post(const std::string &path, Handler h) { add("POST", path, h); }
+    void put(const std::string &path, Handler h) { add("PUT", path, h); }
+    void del(const std::string &path, Handler h) { add("DELETE", path, h); }
 
-    // Route registration methods
-    void get(const std::string &route, std::function<void(Request &, Response &)> handler);
-    void post(const std::string &route, std::function<void(Request &, Response &)> handler);
-    void put(const std::string &route, std::function<void(Request &, Response &)> handler);
-    void del(const std::string &route, std::function<void(Request &, Response &)> handler);
+    // Returns false if no route matched
+    bool dispatch(Request &req, Response &res) const {
+        for (auto &route : routes_)
+            if (route.method == req.method && route.path == req.path) {
+                route.handler(req, res);
+                return true;
+            }
+        return false;
+    }
 
-    // Middleware support
-    using MiddlewareFunction = std::function<void(Request &, Response &)>;
-    void use(MiddlewareFunction middleware);                          // Global middleware
-    void use(const std::string &path, MiddlewareFunction middleware); // Path-specific middleware
-
-    // Dispatch
-    bool handleRoute(Request &req, Response &res);
-
-    // Introspection
-    void printRoutes() const;
-    std::string findMatchingRouteTemplate(const std::string &requestUri) const;
-
-    // RFC 2616 §9.2 / §10.4.6 — return every HTTP method registered for a URI.
-    // Used to populate the Allow header in 405 responses and OPTIONS replies.
-    std::vector<std::string> allowedMethods(const std::string &requestUri) const;
+    void printRoutes() const {
+        for (auto &r : routes_) std::cout << r.method << " " << r.path << "\n";
+    }
 
   private:
-    void addRoute(const std::string &method, const std::string &route,
-                  std::function<void(Request &, Response &)> handler);
-    bool isRouteMatch(const std::string &routePattern, const std::string &requestUri) const;
-    bool isPathMatch(const std::string &middlewarePath, const std::string &requestUri) const;
-
-    struct RouteInfo {
-        std::string method;
-        std::function<void(Request &, Response &)> handler;
-    };
-
-    struct MiddlewareInfo {
-        std::string path;
-        MiddlewareFunction handler;
-        bool isGlobal;
-    };
-
-    std::map<std::string, RouteInfo> routes;
-    std::vector<MiddlewareInfo> middlewareStack;
+    std::vector<Route> routes_;
+    void add(const std::string &m, const std::string &p, Handler h) { routes_.push_back({m, p, h}); }
 };
 
 #endif
