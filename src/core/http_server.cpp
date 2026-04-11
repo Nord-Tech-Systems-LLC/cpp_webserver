@@ -65,6 +65,25 @@ void logTcpDiagnostics(int clientFd) {
               << " | CWND: " << static_cast<int>(ti.tcpi_snd_cwnd) << '\n';
 }
 
+// -- Middleware --
+void HttpServer::runMiddlewareChain(Request &req, Response &res) {
+    size_t index = 0;
+
+    std::function<void()> next = [&]() {
+        if (index < middlewares.size()) {
+            auto &mw = middlewares[index++];
+            mw(req, res, next);
+        } else {
+            // FINAL step → route handling
+            if (!router_.dispatch(req, res)) {
+                res.setStatus(404).setBody("Not Found").setHeader("Content-Type", "text/plain");
+            }
+        }
+    };
+
+    next();
+}
+
 // ── Accept Loop ──────────────────────────────────────────────────────────────
 
 void HttpServer::acceptConnections() {
@@ -153,9 +172,8 @@ void HttpServer::handleRequest(const std::string &raw, Request &req, Response &r
     auto t0 = std::chrono::high_resolution_clock::now();
     // std::cout << "Request:\n" << raw << "\n";
     req = Request::parse(raw);
-
     res.setHeader("Connection", req.headers.count("Connection") ? req.headers.at("Connection") : "keep-alive");
-    if (!router_.dispatch(req, res)) res.setStatus(404).setBody("Not Found").setHeader("Content-Type", "text/plain");
+    runMiddlewareChain(req, res);
 }
 
 void HttpServer::handleResponse(int fd, Response &res) {

@@ -13,6 +13,9 @@
 #include <string>
 #include <unordered_map>
 
+using Next = std::function<void()>;
+using Middleware = std::function<void(Request &, Response &, Next)>;
+
 // RFC 2616 §8.1.4 — servers SHOULD limit simultaneous persistent connections.
 static constexpr int MAX_CONNECTIONS = 128;
 
@@ -31,6 +34,10 @@ class HttpServer {
     void put(const std::string &path, Handler h) { router_.put(path, h); }
     void del(const std::string &path, Handler h) { router_.del(path, h); }
     void printRoutes() { router_.printRoutes(); }
+    void use(Middleware mw) { middlewares.push_back(mw); }
+
+    void runMiddlewareChain(Request &req, Response &res);
+    std::vector<Middleware> middlewares;
 
   private:
     Router router_;
