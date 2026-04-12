@@ -53,8 +53,16 @@ void user_controller(HttpServer &server) {
 int main() {
     HttpServer server("127.0.0.1", "8080");
     // server.middleware({{"Access-Control-Allow-Origin", "*"}}); // set global header config
-    // server.use(                                                // set middleware
-    //     [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
+    server.use([](Request &req, Response &res, Next next) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        if (req.method == "OPTIONS") {
+            res.setStatus(204);
+            return;
+        }
+    });
     user_controller(server); // load route controller
     server.printRoutes();
     server.start(); // start server
