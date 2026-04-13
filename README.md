@@ -36,50 +36,54 @@ class Users {
 
 void Users::getUserListData(Request &req, Response &res) {
     try {
-        int offset = std::stoi(req.getRouteTemplateParams().at(":offset"));
-        int limit = std::stoi(req.getRouteTemplateParams().at(":limit"));
+        int offset = std::stoi(req.query["offset"]);
+        int limit = std::stoi(req.query["limit"]);
 
-        res.status(200).send("User List Data");
+        res.setStatus(200).setBody("User List Data");
     } catch (const std::invalid_argument &e) {
-        res.status(400).send("Bad Request: " + std::string(e.what()));
-    } catch (const std::exception &e) {
-        res.status(500).send("Internal Server Error: " + std::string(e.what()));
-    }
+        res.setStatus(400).setBody("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) { res.setStatus(500).setBody("Internal Server Error: " + std::string(e.what())); }
 }
 
 void Users::createUser(Request &req, Response &res) {
     try {
-        res.status(200).send(req.getBody());
+        res.setStatus(200).setBody(req.body);
     } catch (const std::invalid_argument &e) {
-        res.status(400).send("Bad Request: " + std::string(e.what()));
-    } catch (const std::exception &e) {
-        res.status(500).send("internal Server Error: " + std::string(e.what()));
-    }
+        res.setStatus(400).setBody("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) { res.setStatus(500).setBody("internal Server Error: " + std::string(e.what())); }
 }
 
 void Users::getCurrentUser(Request &req, Response &res) {
     try {
-        res.status(200).send("Current User!");
+        // res.setHeader("Content-Type", "application/json");
+        res.setStatus(200).setBody(req.body);
     } catch (const std::invalid_argument &e) {
-        res.status(400).send("Bad Request: " + std::string(e.what()));
-    } catch (const std::exception &e) {
-        res.status(500).send("Internal Server Error: " + std::string(e.what()));
-    }
+        res.setStatus(400).setBody("Bad Request: " + std::string(e.what()));
+    } catch (const std::exception &e) { res.setStatus(500).setBody("Internal Server Error: " + std::string(e.what())); }
 }
 
 void user_controller(HttpServer &server) {
-    server.get("/list_users/:offset/:limit", Users::getUserListData);
-    server.get("/current_user", Users::getCurrentUser);
-    server.post("/create_user", Users::createUser);
+    server.get("/api/list_users", Users::getUserListData);
+    server.post("/api/current_user", Users::getCurrentUser);
+    server.post("/api/create_user", Users::createUser);
 }
 
 int main() {
     HttpServer server("127.0.0.1", "8080");
-    server.middleware({{"Access-Control-Allow-Origin", "*"}}); // set global header config
-    server.use(                                                // set middleware
-        [](Request &req, Response &res) { std::cout << "This is middleware!" << std::endl; });
+    server.use([](Request &req, Response &res, Next next) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+        if (req.method == "OPTIONS") {
+            res.setStatus(204);
+            return;
+        }
+        next();
+    });
     user_controller(server); // load route controller
-    server.start();          // start server
+    server.printRoutes();
+    server.start(); // start server
     return 0;
 }
 
