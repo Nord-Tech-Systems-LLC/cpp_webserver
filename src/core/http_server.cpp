@@ -89,9 +89,9 @@ void HttpServer::runMiddlewareChain(Request &req, Response &res) {
 
 void HttpServer::acceptConnections() {
     sockaddr_storage clientAddr;
-    socklen_t addrLen = sizeof(clientAddr);
 
     while (true) {
+        socklen_t addrLen = sizeof(clientAddr); // reset each time
         int fd = accept(server_socket, (sockaddr *)&clientAddr, &addrLen);
         if (fd == -1) {
             perror("accept");
