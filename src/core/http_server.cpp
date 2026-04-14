@@ -1,6 +1,7 @@
 #include "cpp_webserver_include/core.hpp"
 
 #include <arpa/inet.h>
+#include <netdb.h> // NEW
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <thread>
@@ -17,7 +18,7 @@ HttpServer::~HttpServer() {
 // ── Entry Point ──────────────────────────────────────────────────────────────
 
 void HttpServer::start(std::function<void()> onReady) {
-    if (createSocket() && bindSocket() && listenSocket()) {
+    if (setupServerSocket() && listenSocket()) {
         if (onReady) onReady();
         acceptConnections();
     }
@@ -117,29 +118,70 @@ void HttpServer::acceptConnections() {
 
 // ── Socket Lifecycle ─────────────────────────────────────────────────────────
 
-bool HttpServer::createSocket() {
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket == -1) {
-        perror("socket");
+bool HttpServer::setupServerSocket() {
+    struct addrinfo hints{};
+    struct addrinfo *servinfo;
+    struct addrinfo *p;
+
+    std::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC; // IPv4 OR IPv6
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE; // bind to local IP
+
+    int status = getaddrinfo(ip_address, port, &hints, &servinfo);
+    if (status != 0) {
+        std::cerr << "getaddrinfo: " << gai_strerror(status) << "\n";
         return false;
     }
+
+    // Loop through all results and bind to first valid one
+    for (p = servinfo; p != nullptr; p = p->ai_next) {
+        server_socket = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (server_socket == -1) continue;
+
+        int opt = 1;
+        setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        if (bind(server_socket, p->ai_addr, p->ai_addrlen) == 0) {
+            break; // SUCCESS
+        }
+
+        close(server_socket);
+    }
+
+    freeaddrinfo(servinfo);
+
+    if (p == nullptr) {
+        std::cerr << "Failed to bind to any address\n";
+        return false;
+    }
+
     return true;
 }
 
-bool HttpServer::bindSocket() {
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(ip_address);
-    addr.sin_port = htons(std::stoi(port));
+// bool HttpServer::createSocket() {
+//     server_socket = socket(AF_INET, SOCK_STREAM, 0);
+//     if (server_socket == -1) {
+//         perror("socket");
+//         return false;
+//     }
+//     return true;
+// }
 
-    int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1 ||
-        bind(server_socket, (sockaddr *)&addr, sizeof(addr)) == -1) {
-        perror("bind");
-        return false;
-    }
-    return true;
-}
+// bool HttpServer::bindSocket() {
+//     sockaddr_in addr{};
+//     addr.sin_family = AF_INET;
+//     addr.sin_addr.s_addr = inet_addr(ip_address);
+//     addr.sin_port = htons(std::stoi(port));
+
+//     int opt = 1;
+//     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1 ||
+//         bind(server_socket, (sockaddr *)&addr, sizeof(addr)) == -1) {
+//         perror("bind");
+//         return false;
+//     }
+//     return true;
+// }
 
 bool HttpServer::listenSocket() {
     if (listen(server_socket, MAX_CONNECTIONS) == -1) {

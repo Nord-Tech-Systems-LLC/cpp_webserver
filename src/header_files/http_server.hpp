@@ -45,8 +45,10 @@ class HttpServer {
     const char *ip_address;
     int server_socket;
 
-    bool createSocket();
-    bool bindSocket();
+    // bool createSocket();
+    // bool bindSocket();
+    bool setupServerSocket();
+
     bool listenSocket();
 
     // RFC 2616 §8.1.4 — count active connections to enforce MAX_CONNECTIONS
